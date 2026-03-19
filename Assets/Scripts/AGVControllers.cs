@@ -27,8 +27,8 @@ namespace RosSharp.Control
         public float forceLimit = 10f;
         public float damping = 10f;
 
-        public float speedScale = 0.5f;   // rallenta tutto
-        public float turnScale = 0.5f;    // rallenta anche la rotazione
+        public float speedScale = 0.3f;   // rallenta tutto
+        public float turnScale = 0.3f;    // rallenta anche la rotazione
 
         public float ROSTimeout = 0.5f;
         private float lastCmdReceived = 0f;
@@ -114,7 +114,7 @@ namespace RosSharp.Control
                 rosAngular = 0f;
             }
 
-            RobotInput(-rosLinear * speedScale, -rosAngular * turnScale);
+            RobotInput(rosLinear * speedScale, -rosAngular * turnScale);
         }
 
         private void RobotInput(float speed, float rotSpeed)
