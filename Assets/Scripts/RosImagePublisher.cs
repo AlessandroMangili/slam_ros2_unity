@@ -1,7 +1,7 @@
 using System.Collections;
+using RosMessageTypes.BuiltinInterfaces;
 using RosMessageTypes.Sensor;
 using RosMessageTypes.Std;
-using RosMessageTypes.BuiltinInterfaces;
 using Unity.Robotics.ROSTCPConnector;
 using UnityEngine;
 
@@ -13,14 +13,18 @@ public class RosImagePublisher : MonoBehaviour
     [SerializeField] private int width = 640;
     [SerializeField] private int height = 480;
     [SerializeField] private int publishFps = 15;
-    [SerializeField] private string frameId = "camera_rgb_optical_frame";
+
+    [Header("Flip")]
+    [SerializeField] private bool flipHorizontal = true;
+    [SerializeField] private bool flipVertical = false;
 
     [Header("ROS")]
     [SerializeField] private string topicName = "/camera/image_raw";
+    [SerializeField] private string frameId = "camera_rgb_optical_frame";
 
     private ROSConnection ros;
     private RenderTexture renderTexture;
-    private Texture2D texture2D;
+    private Texture2D readTexture;
     private WaitForSeconds wait;
 
     void Awake()
@@ -33,7 +37,7 @@ public class RosImagePublisher : MonoBehaviour
     {
         if (sourceCamera == null)
         {
-            Debug.LogError("[RosImagePublisher] Nessuna Camera trovata.");
+            Debug.LogError("[RosImagePublisher] Camera non trovata.");
             enabled = false;
             return;
         }
@@ -45,7 +49,7 @@ public class RosImagePublisher : MonoBehaviour
         renderTexture.Create();
         sourceCamera.targetTexture = renderTexture;
 
-        texture2D = new Texture2D(width, height, TextureFormat.RGBA32, false);
+        readTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
         wait = new WaitForSeconds(1f / Mathf.Max(1, publishFps));
 
         StartCoroutine(PublishLoop());
@@ -62,35 +66,51 @@ public class RosImagePublisher : MonoBehaviour
 
     void PublishFrame()
     {
-        if (sourceCamera == null || renderTexture == null || texture2D == null)
+        if (renderTexture == null || readTexture == null)
             return;
 
-        var prev = RenderTexture.active;
+        RenderTexture prev = RenderTexture.active;
         RenderTexture.active = renderTexture;
 
         sourceCamera.Render();
-        texture2D.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-        texture2D.Apply(false);
+        readTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+        readTexture.Apply();
 
         RenderTexture.active = prev;
 
-        var pixels = texture2D.GetPixels32();
-        var data = new byte[pixels.Length * 4];
+        Color32[] src = readTexture.GetPixels32();
+        Color32[] dst = new Color32[src.Length];
 
-        for (int i = 0; i < pixels.Length; i++)
+        for (int y = 0; y < height; y++)
+        {
+            int dstY = flipVertical ? (height - 1 - y) : y;
+
+            for (int x = 0; x < width; x++)
+            {
+                int dstX = flipHorizontal ? (width - 1 - x) : x;
+
+                int srcIndex = y * width + x;
+                int dstIndex = dstY * width + dstX;
+
+                dst[dstIndex] = src[srcIndex];
+            }
+        }
+
+        byte[] data = new byte[dst.Length * 4];
+        for (int i = 0; i < dst.Length; i++)
         {
             int j = i * 4;
-            data[j] = pixels[i].r;
-            data[j + 1] = pixels[i].g;
-            data[j + 2] = pixels[i].b;
-            data[j + 3] = pixels[i].a;
+            data[j]     = dst[i].r;
+            data[j + 1] = dst[i].g;
+            data[j + 2] = dst[i].b;
+            data[j + 3] = dst[i].a;
         }
 
         double t = Time.time;
         var stamp = new TimeMsg
         {
             sec = (int)t,
-            nanosec = (uint)((t - Mathf.Floor((float)t)) * 1e9)
+            nanosec = (uint)((t - Mathf.Floor((float)t)) * 1_000_000_000.0)
         };
 
         var msg = new ImageMsg
@@ -122,7 +142,7 @@ public class RosImagePublisher : MonoBehaviour
             Destroy(renderTexture);
         }
 
-        if (texture2D != null)
-            Destroy(texture2D);
+        if (readTexture != null)
+            Destroy(readTexture);
     }
 }

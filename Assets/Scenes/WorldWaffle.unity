@@ -317,6 +317,7 @@ Transform:
   m_Children:
   - {fileID: 234138204}
   - {fileID: 438440984}
+  - {fileID: 888100456}
   m_Father: {fileID: 1197746765}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &125605216
@@ -730,13 +731,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 193443771}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.5, y: -0.5, z: -0.5, w: 0.5}
+  m_LocalRotation: {x: -0.5, y: 0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 743566994}
-  m_LocalEulerAnglesHint: {x: -90, y: 0, z: -90}
+  m_LocalEulerAnglesHint: {x: -90, y: 180, z: -90}
 --- !u!114 &193443773
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -856,8 +857,10 @@ MonoBehaviour:
   width: 640
   height: 480
   publishFps: 15
-  frameId: camera_rgb_optical_frame
+  flipHorizontal: 1
+  flipVertical: 0
   topicName: /camera/image_raw
+  frameId: camera_rgb_optical_frame
 --- !u!1001 &215153043
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2360,6 +2363,55 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfVisual
   geometryType: 3
+--- !u!1 &888100455
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 888100456}
+  - component: {fileID: 888100457}
+  m_Layer: 0
+  m_Name: Lidar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &888100456
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888100455}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 125605215}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &888100457
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 888100455}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b10257471d3d94a1e9f898bc79fbcf66, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RosLidarPublisher
+  topicName: /scan
+  frameId: base_scan
+  numRays: 360
+  maxDistance: 10
+  scanRate: 5
 --- !u!1001 &914521421
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4195,33 +4247,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 6764868634210213614, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
---- !u!1 &1694427473 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 8285655036313237005, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
-  m_PrefabInstance: {fileID: 2084360682}
-  m_PrefabAsset: {fileID: 0}
---- !u!64 &1694427477
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1694427473}
-  m_Material: {fileID: 13400000, guid: 8689350e5699924a4b6ad93d574e8509, type: 2}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 2172763928758788548, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
 --- !u!1 &1703769299
 GameObject:
   m_ObjectHideFlags: 0
@@ -4894,9 +4919,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 219538856208055712, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 793969676}
-    - targetCorrespondingSourceObject: {fileID: 8285655036313237005, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1694427477}
   m_SourcePrefab: {fileID: -5645937942226959685, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
 --- !u!1 &2139058554
 GameObject:
