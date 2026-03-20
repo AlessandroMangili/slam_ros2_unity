@@ -1,0 +1,89 @@
+fileFormatVersion: 2
+guid: b407ba63a2e9684529b8dc1127725e48
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 715df9372183c47e389bb6e19fbc3b52, type: 3}
+  editorImportSettings:
+    generateSecondaryUVSet: 0
+  importSettings:
+    nodeNameMethod: 1
+    animationMethod: 2
+    generateMipMaps: 1
+    texturesReadable: 0
+    defaultMinFilterMode: 9729
+    defaultMagFilterMode: 9729
+    anisotropicFilterLevel: 1
+  instantiationSettings:
+    mask: -1
+    layer: 0
+    skinUpdateWhenOffscreen: 1
+    lightIntensityFactor: 1
+    sceneObjectCreation: 2
+  assetDependencies:
+  - type: 0
+    originalUri: Assets/environment/Warehouse/scene.bin
+    assetPath: Assets/environment/Warehouse/scene.bin
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Asphalt_New_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Asphalt_New_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Aluminum_Anodized_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Aluminum_Anodized_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Water_Deep_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Water_Deep_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Water_Deep_specularf0.png
+    assetPath: Assets/environment/Warehouse/textures/Water_Deep_specularf0.png
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Rough_1_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Rough_1_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Water_Deep_0_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Water_Deep_0_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Wood_Lumber_ButtJoined_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Wood_Lumber_ButtJoined_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Fencing_Wood_Old_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Fencing_Wood_Old_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Wood_Lumber_ButtJoined_1_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Wood_Lumber_ButtJoined_1_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Corrogated_Shiny_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Corrogated_Shiny_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Corrogated_Shiny_2_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Corrogated_Shiny_2_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Aluminum_Anodized_3_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Aluminum_Anodized_3_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Rough1_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Rough1_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Rough1_metallicRoughness.png
+    assetPath: Assets/environment/Warehouse/textures/Metal_Rough1_metallicRoughness.png
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Rough_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Rough_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Metal_Rough_5_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Metal_Rough_5_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Groundcover_Wood_Mix_6_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Groundcover_Wood_Mix_6_baseColor.jpeg
+  - type: 1
+    originalUri: Assets/environment/Warehouse/textures/Groundcover_Wood_Mix_baseColor.jpeg
+    assetPath: Assets/environment/Warehouse/textures/Groundcover_Wood_Mix_baseColor.jpeg
+  reportItems:
+  - type: 2
+    code: 20
+    messages:
+    - KHR_materials_specular
