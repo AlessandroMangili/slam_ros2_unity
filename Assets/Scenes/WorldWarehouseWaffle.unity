@@ -290,8 +290,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 1
-  m_ParentAnchorPosition: {x: -0.06400015, y: -0.003999958, z: -0.17700005}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 1.0000001, w: 0.00039806962}
+  m_ParentAnchorPosition: {x: -0.06400013, y: -0.003999958, z: -0.17700005}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.99999994, w: 0.00039809942}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -1540,8 +1540,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 0.02849894
-  m_ParentAnchorPosition: {x: 0.14400007, y: 0.022999993, z: -0.000000014901161}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: -0.00039806962, w: 1.0000001}
+  m_ParentAnchorPosition: {x: 0.14400005, y: 0.022999993, z: 0}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: -0.00039809942, w: 0.99999994}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -1780,8 +1780,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 0.02849894
-  m_ParentAnchorPosition: {x: -0.14400007, y: 0.022999993, z: 0.000000014901161}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: -0.00039806962, w: 1.0000001}
+  m_ParentAnchorPosition: {x: -0.14400005, y: 0.022999993, z: 0}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: -0.00039809942, w: 0.99999994}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: -0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -2180,8 +2180,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 1
-  m_ParentAnchorPosition: {x: 0.011000165, y: 0.0840001, z: 0.07299996}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071069, w: 0.7071069}
+  m_ParentAnchorPosition: {x: 0.011000156, y: 0.0840001, z: 0.072999954}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -2571,8 +2571,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 1
-  m_ParentAnchorPosition: {x: 0.000000007450581, y: -0.000000074505806, z: 0.00000022351742}
-  m_ParentAnchorRotation: {x: 0.70682526, y: 0.00028142333, z: 0.70738834, w: 0.00028163195}
+  m_ParentAnchorPosition: {x: 0, y: -0.000000074505806, z: 0.00000021606684}
+  m_ParentAnchorRotation: {x: 0.7068252, y: 0.00028139353, z: 0.7073883, w: 0.00028166175}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -3162,8 +3162,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 1
-  m_ParentAnchorPosition: {x: -0.0109999925, y: 0.008999929, z: 0.0030002221}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071069, w: 0.7071069}
+  m_ParentAnchorPosition: {x: -0.011, y: 0.008999929, z: 0.0030002147}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -3294,7 +3294,7 @@ ArticulationBody:
   serializedVersion: 6
   m_Mass: 1
   m_ParentAnchorPosition: {x: 0, y: 0.06800007, z: 0}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071069, w: 0.7071069}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -3362,6 +3362,54 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
   IsBaseLink: 0
+--- !u!1 &1199306337
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1199306338}
+  - component: {fileID: 1199306339}
+  m_Layer: 0
+  m_Name: OdomPublisher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1199306338
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199306337}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1726507346}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1199306339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1199306337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffd0a838473c04c19ae7c6cdb6f2a88e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OdometryPublisher
+  topicName: /odom
+  frameId: odom
+  childFrameId: base_link
+  robotFrame: {fileID: 109475693}
 --- !u!1 &1224297270
 GameObject:
   m_ObjectHideFlags: 8
@@ -3487,8 +3535,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 1
-  m_ParentAnchorPosition: {x: 0.06400012, y: -0.003999958, z: -0.17700008}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 1.0000001, w: 0.00039806962}
+  m_ParentAnchorPosition: {x: 0.06400013, y: -0.003999958, z: -0.17700005}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.99999994, w: 0.00039809942}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -3566,6 +3614,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1344860340}
   - component: {fileID: 1344860341}
+  - component: {fileID: 1344860342}
   m_Layer: 0
   m_Name: Lidar
   m_TagString: Untagged
@@ -3603,6 +3652,27 @@ MonoBehaviour:
   topicName: /scan
   frameId: base_scan
   numRays: 360
+  maxDistance: 10
+  scanRate: 5
+--- !u!114 &1344860342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1344860339}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f41008b358744eaeb33a01d10cd8dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RosPointCloud2Publisher
+  topicName: /point_cloud
+  frameId: base_scan
+  numRaysHorizontal: 360
+  numRaysVertical: 16
+  horizontalFov: 360
+  verticalFovMin: -15
+  verticalFovMax: 15
   maxDistance: 10
   scanRate: 5
 --- !u!64 &1396088589
@@ -3867,8 +3937,8 @@ ArticulationBody:
   m_Enabled: 1
   serializedVersion: 6
   m_Mass: 0.114
-  m_ParentAnchorPosition: {x: -0.000000007450581, y: 0.12199997, z: -0.06400014}
-  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071069, w: 0.7071069}
+  m_ParentAnchorPosition: {x: 0, y: 0.12199997, z: -0.06400013}
+  m_ParentAnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_AnchorPosition: {x: 0, y: 0, z: 0}
   m_AnchorRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
   m_MatchAnchors: 1
@@ -4103,6 +4173,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 2142355209}
+  - {fileID: 1199306338}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1743460578

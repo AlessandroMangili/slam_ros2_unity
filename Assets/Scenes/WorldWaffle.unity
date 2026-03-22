@@ -295,6 +295,7 @@ GameObject:
   - component: {fileID: 125605218}
   - component: {fileID: 125605217}
   - component: {fileID: 125605216}
+  - component: {fileID: 125605220}
   m_Layer: 0
   m_Name: ${namespace}base_scan
   m_TagString: Untagged
@@ -318,6 +319,7 @@ Transform:
   - {fileID: 234138204}
   - {fileID: 438440984}
   - {fileID: 888100456}
+  - {fileID: 1807106246}
   m_Father: {fileID: 1197746765}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &125605216
@@ -433,6 +435,29 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.Robotics.UrdfImporter::Unity.Robotics.UrdfImporter.UrdfLink
   IsBaseLink: 0
+--- !u!114 &125605220
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 125605214}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f41008b358744eaeb33a01d10cd8dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RosPointCloud2Publisher
+  topicName: /point_cloud
+  frameId: base_scan
+  numRaysHorizontal: 360
+  numRaysVertical: 16
+  horizontalFov: 360
+  verticalFovMin: -15
+  verticalFovMax: 15
+  maxDistance: 10
+  scanRate: 5
+  minHeightFilter: -0.05
+  minDistanceFilter: 0.3
 --- !u!1 &161816729 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4133009333360286427, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
@@ -1246,6 +1271,55 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -8998149426252981176, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
+--- !u!1 &308280803
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 308280805}
+  - component: {fileID: 308280804}
+  m_Layer: 0
+  m_Name: OdometryPublisher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &308280804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308280803}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffd0a838473c04c19ae7c6cdb6f2a88e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::OdometryPublisher
+  topicName: /odom
+  tfTopicName: /tf
+  frameId: odom
+  childFrameId: base_link
+  robotFrame: {fileID: 1197746765}
+--- !u!4 &308280805
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308280803}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.89706, y: -2.93285, z: -7.76318}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &326597833 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -354677962020011154, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
@@ -2409,9 +2483,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RosLidarPublisher
   topicName: /scan
   frameId: base_scan
-  numRays: 360
+  numRaysHorizontal: 360
+  numRaysVertical: 16
+  horizontalFov: 360
+  verticalFovMin: -15
+  verticalFovMax: 15
   maxDistance: 10
   scanRate: 5
+  minDistanceFilter: 0.3
+  laserSliceMinZ: -0.05
+  laserSliceMaxZ: 0.05
 --- !u!1001 &914521421
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4458,6 +4539,61 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: -2457936780801094503, guid: 3807cb38f5ef4d40d869d4ca31d106e9, type: 3}
+--- !u!1 &1807106245
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1807106246}
+  - component: {fileID: 1807106247}
+  m_Layer: 0
+  m_Name: RosPointCloud2Publisher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1807106246
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1807106245}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.7071068, z: -0, w: -0.7071068}
+  m_LocalPosition: {x: -2.5131803, y: -0.16484979, z: 1.6669403}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 125605215}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1807106247
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1807106245}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f41008b358744eaeb33a01d10cd8dc4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RosPointCloud2Publisher
+  topicName: /point_cloud
+  frameId: base_scan
+  numRaysHorizontal: 360
+  numRaysVertical: 16
+  horizontalFov: 360
+  verticalFovMin: -15
+  verticalFovMax: 15
+  maxDistance: 10
+  scanRate: 5
+  minHeightFilter: -0.05
+  minDistanceFilter: 0.3
 --- !u!1 &1820685363
 GameObject:
   m_ObjectHideFlags: 0
@@ -5033,4 +5169,5 @@ SceneRoots:
   m_Roots:
   - {fileID: 2084360682}
   - {fileID: 503037541}
+  - {fileID: 308280805}
   - {fileID: 410087041}
