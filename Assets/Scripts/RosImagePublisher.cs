@@ -139,7 +139,7 @@ public class RosImagePublisher : MonoBehaviour
         if (renderTexture != null)
         {
             renderTexture.Release();
-            Destroy(renderTexture);
+            renderTexture = null;
         }
 
         if (readTexture != null)

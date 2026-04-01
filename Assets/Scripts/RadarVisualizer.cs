@@ -14,8 +14,20 @@ public class RadarVisualizer : MonoBehaviour
     public GameObject pointPrefab;
     public RectTransform sweepLine;
 
+    [Header("Radar Scaling")]
+    public float minLidarRange = 0.2f;
+    public float dynamicMaxDistance = 1f;
+
     [Header("Sweep")]
     public float sweepSpeed = 120f;
+
+    [Header("Smoothing")]
+    [Range(0f, 1f)]
+    public float smoothing = 0.25f;
+
+    [Header("Fade")]
+    public bool enableFade = false;
+    public float fadeSpeed = 0.2f;
 
     [Header("Pooling")]
     public int poolSize = 400;
@@ -23,18 +35,19 @@ public class RadarVisualizer : MonoBehaviour
     private GameObject[] pool;
     private int poolIndex = 0;
 
-    [Header("LiDAR Scaling")]
-    public float minLidarRange = 0.2f;
-
-    private float dynamicMaxDistance = 1f;
-
-    [Header("Smoothing")]
-    [Range(0f, 1f)]
-    public float smoothing = 0.25f;
-
     private float[] lastScan;
 
     private ROSConnection ros;
+
+    // 🔥 struttura per gestione stabile punti
+    private class RadarPoint
+    {
+        public GameObject obj;
+        public Image img;
+        public float life;
+    }
+
+    private List<RadarPoint> activePoints = new List<RadarPoint>();
 
     void Start()
     {
@@ -57,14 +70,36 @@ public class RadarVisualizer : MonoBehaviour
             sweepLine.Rotate(0, 0, -sweepSpeed * Time.deltaTime);
     }
 
+    void LateUpdate()
+    {
+        if (!enableFade) return;
+
+        for (int i = activePoints.Count - 1; i >= 0; i--)
+        {
+            var p = activePoints[i];
+
+            p.life -= Time.deltaTime * fadeSpeed;
+
+            if (p.life <= 0f)
+            {
+                p.obj.SetActive(false);
+                activePoints.RemoveAt(i);
+            }
+            else
+            {
+                Color c = p.img.color;
+                c.a = Mathf.Clamp01(p.life);
+                p.img.color = c;
+            }
+        }
+    }
+
     void OnScanReceived(LaserScanMsg msg)
     {
         int n = msg.ranges.Length;
 
         if (lastScan == null || lastScan.Length != n)
             lastScan = new float[n];
-
-        ResetPool();
 
         float maxSeen = 0f;
 
@@ -86,25 +121,23 @@ public class RadarVisualizer : MonoBehaviour
             DrawPoint(angle, lastScan[i]);
         }
 
-        // 🔥 auto scaling dinamico (con smoothing)
+        // 🔥 auto scaling stabile
         if (maxSeen > minLidarRange)
             dynamicMaxDistance = Mathf.Lerp(dynamicMaxDistance, maxSeen, 0.1f);
     }
 
     void DrawPoint(float angle, float distance)
     {
-        // 🔧 FIX ROS → Unity (rotazione asse)
+        // 🔧 fix asse ROS → Unity
         angle += Mathf.PI / 2f;
 
-        GameObject point = GetPoint();
+        GameObject obj = GetPoint();
 
-        RectTransform rt = point.GetComponent<RectTransform>();
-        Image img = point.GetComponent<Image>();
+        RectTransform rt = obj.GetComponent<RectTransform>();
+        Image img = obj.GetComponent<Image>();
 
-        // 📏 radar size reale UI
         float radarRadius = radarCenter.rect.width * 0.5f;
 
-        // 🔥 normalizzazione dinamica (FIX principale)
         float normalized = Mathf.Clamp01(distance / dynamicMaxDistance);
 
         float radius = normalized * radarRadius;
@@ -114,14 +147,22 @@ public class RadarVisualizer : MonoBehaviour
 
         rt.anchoredPosition = new Vector2(x, y);
 
-        // 🎨 colore: vicino rosso → lontano giallo
+        // colore
         img.color = Color.Lerp(Color.red, Color.yellow, normalized);
 
-        // 📏 dimensione dinamica
+        // dimensione
         float size = Mathf.Lerp(6f, 2f, normalized);
         rt.sizeDelta = new Vector2(size, size);
 
-        point.SetActive(true);
+        obj.SetActive(true);
+
+        // gestione stabile (senza reset)
+        activePoints.Add(new RadarPoint
+        {
+            obj = obj,
+            img = img,
+            life = 1f
+        });
     }
 
     GameObject GetPoint()
@@ -129,25 +170,5 @@ public class RadarVisualizer : MonoBehaviour
         GameObject obj = pool[poolIndex];
         poolIndex = (poolIndex + 1) % poolSize;
         return obj;
-    }
-
-    void ResetPool()
-    {
-        for (int i = 0; i < pool.Length; i++)
-        {
-            if (pool[i].activeSelf)
-            {
-                Image img = pool[i].GetComponent<Image>();
-
-                // 🌫️ fade scia
-                Color c = img.color;
-                c.a = 0.15f;
-                img.color = c;
-
-                pool[i].SetActive(false);
-            }
-        }
-
-        poolIndex = 0;
     }
 }
