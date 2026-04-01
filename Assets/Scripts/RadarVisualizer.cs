@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Unity.Robotics.ROSTCPConnector;
 using RosMessageTypes.Sensor;
@@ -8,17 +9,13 @@ public class RadarVisualizer : MonoBehaviour
     [Header("ROS")]
     public string topicName = "/scan";
 
-    [Header("Radar Settings")]
+    [Header("UI")]
     public RectTransform radarCenter;
     public GameObject pointPrefab;
-
-    public float radarRadius = 100f;
-    public float maxDistance = 10f;
-
     public RectTransform sweepLine;
-    public float sweepSpeed = 120f;
 
-    private float[] lastScan;
+    [Header("Sweep")]
+    public float sweepSpeed = 120f;
 
     [Header("Pooling")]
     public int poolSize = 400;
@@ -26,15 +23,24 @@ public class RadarVisualizer : MonoBehaviour
     private GameObject[] pool;
     private int poolIndex = 0;
 
+    [Header("LiDAR Scaling")]
+    public float minLidarRange = 0.2f;
+
+    private float dynamicMaxDistance = 1f;
+
+    [Header("Smoothing")]
+    [Range(0f, 1f)]
+    public float smoothing = 0.25f;
+
+    private float[] lastScan;
+
     private ROSConnection ros;
 
     void Start()
     {
-        // ROS subscribe
         ros = ROSConnection.GetOrCreateInstance();
         ros.Subscribe<LaserScanMsg>(topicName, OnScanReceived);
 
-        // init pool
         pool = new GameObject[poolSize];
 
         for (int i = 0; i < poolSize; i++)
@@ -46,29 +52,48 @@ public class RadarVisualizer : MonoBehaviour
 
     void Update()
     {
-        sweepLine.Rotate(0, 0, -sweepSpeed * Time.deltaTime);
+        // Sweep radar
+        if (sweepLine != null)
+            sweepLine.Rotate(0, 0, -sweepSpeed * Time.deltaTime);
     }
 
     void OnScanReceived(LaserScanMsg msg)
     {
+        int n = msg.ranges.Length;
+
+        if (lastScan == null || lastScan.Length != n)
+            lastScan = new float[n];
+
         ResetPool();
 
-        for (int i = 0; i < msg.ranges.Length; i++)
-        {
-            float distance = msg.ranges[i];
+        float maxSeen = 0f;
 
-            // filtra valori invalidi
-            if (distance <= msg.range_min || distance >= msg.range_max)
+        for (int i = 0; i < n; i++)
+        {
+            float raw = msg.ranges[i];
+
+            if (raw <= msg.range_min || raw >= msg.range_max)
                 continue;
+
+            // smoothing
+            lastScan[i] = Mathf.Lerp(lastScan[i], raw, smoothing);
+
+            if (lastScan[i] > maxSeen)
+                maxSeen = lastScan[i];
 
             float angle = msg.angle_min + i * msg.angle_increment;
 
-            DrawPoint(angle, distance);
+            DrawPoint(angle, lastScan[i]);
         }
+
+        // 🔥 auto scaling dinamico (con smoothing)
+        if (maxSeen > minLidarRange)
+            dynamicMaxDistance = Mathf.Lerp(dynamicMaxDistance, maxSeen, 0.1f);
     }
 
     void DrawPoint(float angle, float distance)
     {
+        // 🔧 FIX ROS → Unity (rotazione asse)
         angle += Mathf.PI / 2f;
 
         GameObject point = GetPoint();
@@ -76,10 +101,12 @@ public class RadarVisualizer : MonoBehaviour
         RectTransform rt = point.GetComponent<RectTransform>();
         Image img = point.GetComponent<Image>();
 
-        // 🔵 normalizzazione distanza
-        float normalized = Mathf.Clamp01(distance / maxDistance);
+        // 📏 radar size reale UI
+        float radarRadius = radarCenter.rect.width * 0.5f;
 
-        // 📍 posizione nel radar
+        // 🔥 normalizzazione dinamica (FIX principale)
+        float normalized = Mathf.Clamp01(distance / dynamicMaxDistance);
+
         float radius = normalized * radarRadius;
 
         float x = Mathf.Cos(angle) * radius;
@@ -87,10 +114,10 @@ public class RadarVisualizer : MonoBehaviour
 
         rt.anchoredPosition = new Vector2(x, y);
 
-        // 🎨 colore (vicino rosso, lontano giallo)
+        // 🎨 colore: vicino rosso → lontano giallo
         img.color = Color.Lerp(Color.red, Color.yellow, normalized);
 
-        // 📏 dimensione (vicino più grande)
+        // 📏 dimensione dinamica
         float size = Mathf.Lerp(6f, 2f, normalized);
         rt.sizeDelta = new Vector2(size, size);
 
@@ -107,7 +134,19 @@ public class RadarVisualizer : MonoBehaviour
     void ResetPool()
     {
         for (int i = 0; i < pool.Length; i++)
-            pool[i].SetActive(false);
+        {
+            if (pool[i].activeSelf)
+            {
+                Image img = pool[i].GetComponent<Image>();
+
+                // 🌫️ fade scia
+                Color c = img.color;
+                c.a = 0.15f;
+                img.color = c;
+
+                pool[i].SetActive(false);
+            }
+        }
 
         poolIndex = 0;
     }
