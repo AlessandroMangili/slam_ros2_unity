@@ -22,8 +22,10 @@ public class RosImagePublisher : MonoBehaviour
     [SerializeField] private string topicName = "/camera/image_raw";
     [SerializeField] private string frameId = "camera_rgb_optical_frame";
 
+    [Header("Texture")]
+    [SerializeField] private RenderTexture renderTexture;
+
     private ROSConnection ros;
-    private RenderTexture renderTexture;
     private Texture2D readTexture;
     private WaitForSeconds wait;
 
@@ -45,8 +47,6 @@ public class RosImagePublisher : MonoBehaviour
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<ImageMsg>(topicName);
 
-        renderTexture = new RenderTexture(width, height, 24, RenderTextureFormat.ARGB32);
-        renderTexture.Create();
         sourceCamera.targetTexture = renderTexture;
 
         readTexture = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -72,7 +72,7 @@ public class RosImagePublisher : MonoBehaviour
         RenderTexture prev = RenderTexture.active;
         RenderTexture.active = renderTexture;
 
-        sourceCamera.Render();
+        //sourceCamera.Render();
         readTexture.ReadPixels(new Rect(0, 0, width, height), 0, 0);
         readTexture.Apply();
 
