@@ -64,7 +64,7 @@ namespace RosSharp.Control
             rosAngular = (float)cmdVel.angular.z;
             lastCmdReceived = Time.time;
 
-            Debug.Log($"[ROS] Received cmd_vel: linear={rosLinear}, angular={rosAngular}");
+            //Debug.Log($"[ROS] Received cmd_vel: linear={rosLinear}, angular={rosAngular}");
         }
 
         void FixedUpdate()

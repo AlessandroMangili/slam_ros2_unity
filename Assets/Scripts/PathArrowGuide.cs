@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class PathArrowGuide : MonoBehaviour
 {
@@ -15,14 +16,65 @@ public class PathArrowGuide : MonoBehaviour
 
     [Header("Arrow Layout")]
     public float arrowHeight = 0.15f;
-    public float arrowScale  = 0.4f;
-    public float goalScale   = 0.6f;
+    public float arrowScale = 0.4f;
+    public float goalScale = 0.6f;
+
+    [Header("Proximity Check")]
+    public Transform robot;
+    public float goalReachedDistance = 0.6f;
+    public MissionMenuManager missionMenuManager;
+
+    [Header("UI")]
+    public TextMeshProUGUI distanceText;
 
     private readonly List<GameObject> spawnedArrows = new List<GameObject>();
+    private Transform currentGoal;
+    private bool missionCompleted;
+
+    void Update()
+    {
+        if (missionCompleted)
+        {
+            if (distanceText != null)
+                distanceText.gameObject.SetActive(false);
+            return;
+        }
+
+        if (robot == null || currentGoal == null)
+        {
+            if (distanceText != null)
+                distanceText.gameObject.SetActive(false);
+            return;
+        }
+
+        float distance = Vector3.Distance(robot.position, currentGoal.position);
+
+        if (distanceText != null)
+        {
+            distanceText.gameObject.SetActive(true);
+            distanceText.text = $"Goal distance: {distance:0.00} m";
+        }
+
+        if (distance <= goalReachedDistance)
+        {
+            missionCompleted = true;
+
+            if (missionMenuManager != null)
+                missionMenuManager.OnMissionCompleted();
+
+            ClearArrows();
+        }
+    }
 
     public void ShowMission(MissionType mission)
     {
         ClearArrows();
+        missionCompleted = false;
+        currentGoal = null;
+
+        if (distanceText != null)
+            distanceText.gameObject.SetActive(true);
+
         if (mission == MissionType.None) return;
 
         Transform[] waypoints = GetWaypoints(mission);
@@ -77,26 +129,32 @@ public class PathArrowGuide : MonoBehaviour
 
     private void SpawnGoal(Transform waypoint)
     {
-        if (goalPrefab == null)
-        {
-            Debug.LogWarning("Goal prefab non assegnato, spawno una freccia normale.");
-            SpawnArrow(waypoint);
-            return;
-        }
-
         Vector3 pos = waypoint.position;
         pos.y += arrowHeight;
 
-        GameObject goal = Instantiate(goalPrefab, pos, waypoint.rotation, arrowsParent);
-        goal.transform.localScale = Vector3.one * goalScale;
+        GameObject goalToUse = goalPrefab != null ? goalPrefab : arrowPrefab;
+        if (goalPrefab == null)
+            Debug.LogWarning("Goal prefab non assegnato, spawno una freccia normale.");
+
+        GameObject goal = Instantiate(goalToUse, pos, waypoint.rotation, arrowsParent);
+        goal.transform.localScale = Vector3.one * (goalPrefab != null ? goalScale : arrowScale);
         spawnedArrows.Add(goal);
+
+        currentGoal = goal.transform;
     }
 
     public void ClearArrows()
     {
         foreach (var arrow in spawnedArrows)
+        {
             if (arrow != null)
                 Destroy(arrow);
+        }
+
         spawnedArrows.Clear();
+        currentGoal = null;
+
+        if (distanceText != null)
+            distanceText.gameObject.SetActive(false);
     }
 }

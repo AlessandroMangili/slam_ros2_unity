@@ -1,5 +1,5 @@
+using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
 
 public enum MissionType
@@ -16,16 +16,22 @@ public class MissionMenuManager : MonoBehaviour
     public GameObject missionPanel;
     public TextMeshProUGUI selectedMissionLabel;
     public TextMeshProUGUI missionButtonText;
+    public TextMeshProUGUI statusMessageText;   // testo messaggio in game
+    public float messageDuration = 2f;
 
     [Header("Path Guide")]
     public PathArrowGuide pathArrowGuide;
 
     private MissionType currentMission = MissionType.None;
+    private Coroutine completionRoutine;
 
     void Start()
     {
         if (missionPanel != null)
             missionPanel.SetActive(true);
+
+        if (statusMessageText != null)
+            statusMessageText.gameObject.SetActive(false);
 
         UpdateLabel();
     }
@@ -67,6 +73,36 @@ public class MissionMenuManager : MonoBehaviour
 
         if (missionPanel != null)
             missionPanel.SetActive(false);
+    }
+
+    public void OnMissionCompleted()
+    {
+        if (completionRoutine != null)
+            StopCoroutine(completionRoutine);
+
+        completionRoutine = StartCoroutine(MissionCompletedRoutine());
+    }
+
+    private IEnumerator MissionCompletedRoutine()
+    {
+        if (statusMessageText != null)
+        {
+            statusMessageText.text = "Robot has reached the goal!";
+            statusMessageText.gameObject.SetActive(true);
+        }
+
+        currentMission = MissionType.None;
+        UpdateLabel();
+
+        if (pathArrowGuide != null)
+            pathArrowGuide.ClearArrows();
+
+        yield return new WaitForSeconds(messageDuration);
+
+        if (statusMessageText != null)
+            statusMessageText.gameObject.SetActive(false);
+
+        OpenMenu();
     }
 
     private void UpdateLabel()
