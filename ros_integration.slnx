@@ -5,6 +5,6 @@
   <Project Path="Assembly-CSharp-Editor.csproj" />
   <Project Path="Unity.Robotics.RosTcpConnector.Runtime.Tests.csproj" />
   <Project Path="Unity.Robotics.ROSTCPConnector.MessageGeneration.csproj" />
-  <Project Path="Unity.Robotics.ROSTCPConnector.Editor.Tests.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.Robotics.ROSTCPConnector.Editor.Tests.csproj" />
 </Solution>
