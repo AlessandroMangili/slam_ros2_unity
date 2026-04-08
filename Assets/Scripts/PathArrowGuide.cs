@@ -8,25 +8,25 @@ public class PathArrowGuide : MonoBehaviour
     public Transform[] waypointsB;
     public Transform[] waypointsC;
 
-    [Header("Arrow Prefab")]
+    [Header("Prefabs")]
     public GameObject arrowPrefab;
+    public GameObject goalPrefab;
     public Transform arrowsParent;
 
     [Header("Arrow Layout")]
-    public float arrowSpacing = 0.6f;
-    public float arrowHeight  = 0.05f;
+    public float arrowHeight = 0.15f;
+    public float arrowScale  = 0.4f;
+    public float goalScale   = 0.6f;
 
     private readonly List<GameObject> spawnedArrows = new List<GameObject>();
 
     public void ShowMission(MissionType mission)
     {
         ClearArrows();
-
         if (mission == MissionType.None) return;
 
         Transform[] waypoints = GetWaypoints(mission);
-
-        if (waypoints == null || waypoints.Length < 2)
+        if (waypoints == null || waypoints.Length < 1)
         {
             Debug.LogError($"Waypoints per {mission} non assegnati o insufficienti!");
             return;
@@ -48,41 +48,48 @@ public class PathArrowGuide : MonoBehaviour
 
     private void SpawnPath(Transform[] waypoints)
     {
-        for (int i = 0; i < waypoints.Length - 1; i++)
+        for (int i = 0; i < waypoints.Length; i++)
         {
-            if (waypoints[i] == null || waypoints[i + 1] == null)
+            if (waypoints[i] == null)
             {
-                Debug.LogWarning($"Waypoint {i} o {i+1} è null, saltato.");
+                Debug.LogWarning($"Waypoint {i} è null, saltato.");
                 continue;
             }
 
-            SpawnSegment(waypoints[i].position, waypoints[i + 1].position);
+            bool isLast = i == waypoints.Length - 1;
+
+            if (isLast)
+                SpawnGoal(waypoints[i]);
+            else
+                SpawnArrow(waypoints[i]);
         }
     }
 
-    private void SpawnSegment(Vector3 start, Vector3 end)
+    private void SpawnArrow(Transform waypoint)
     {
-        Vector3 direction = end - start;
-        direction.y = 0f;
-        float length = direction.magnitude;
-        if (length < 0.01f) return;
+        Vector3 pos = waypoint.position;
+        pos.y += arrowHeight;
 
-        Quaternion rot = Quaternion.LookRotation(direction.normalized, Vector3.up);
-        int count = Mathf.Max(1, Mathf.FloorToInt(length / arrowSpacing));
+        GameObject arrow = Instantiate(arrowPrefab, pos, waypoint.rotation, arrowsParent);
+        arrow.transform.localScale = Vector3.one * arrowScale;
+        spawnedArrows.Add(arrow);
+    }
 
-        for (int i = 0; i < count; i++)
+    private void SpawnGoal(Transform waypoint)
+    {
+        if (goalPrefab == null)
         {
-            float t = (i + 0.5f) / count;
-            Vector3 pos = Vector3.Lerp(start, end, t);
-
-            pos.y = start.y + 0.15f;  // ← più in alto (era 0.01f)
-
-            GameObject arrow = Instantiate(arrowPrefab, pos, rot, arrowsParent);
-
-            arrow.transform.localScale = Vector3.one * 0.4f;  // ← doppio (era 0.2f)
-
-            spawnedArrows.Add(arrow);
+            Debug.LogWarning("Goal prefab non assegnato, spawno una freccia normale.");
+            SpawnArrow(waypoint);
+            return;
         }
+
+        Vector3 pos = waypoint.position;
+        pos.y += arrowHeight;
+
+        GameObject goal = Instantiate(goalPrefab, pos, waypoint.rotation, arrowsParent);
+        goal.transform.localScale = Vector3.one * goalScale;
+        spawnedArrows.Add(goal);
     }
 
     public void ClearArrows()
@@ -90,7 +97,6 @@ public class PathArrowGuide : MonoBehaviour
         foreach (var arrow in spawnedArrows)
             if (arrow != null)
                 Destroy(arrow);
-
         spawnedArrows.Clear();
     }
 }

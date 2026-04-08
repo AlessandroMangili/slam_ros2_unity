@@ -1718,7 +1718,7 @@ Transform:
   m_GameObject: {fileID: 356145260}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
-  m_LocalPosition: {x: -2.478, y: 0, z: 3.7}
+  m_LocalPosition: {x: -2.478, y: 0, z: 3.388}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4238,9 +4238,11 @@ MonoBehaviour:
   - {fileID: 2099023633}
   - {fileID: 1954296996}
   arrowPrefab: {fileID: 4791506629791210615, guid: 21940c75d30c63224af555822e624c75, type: 3}
+  goalPrefab: {fileID: 9119043142514270876, guid: 34f078f067b99cd3aaa06e0aadc03a0a, type: 3}
   arrowsParent: {fileID: 1833375333}
-  arrowSpacing: 0.75
   arrowHeight: 0.05
+  arrowScale: 0.4
+  goalScale: 0.6
 --- !u!4 &951093389
 Transform:
   m_ObjectHideFlags: 0
