@@ -65,20 +65,22 @@ public class PathArrowGuide : MonoBehaviour
         Vector3 direction = end - start;
         direction.y = 0f;
         float length = direction.magnitude;
-
         if (length < 0.01f) return;
 
         Quaternion rot = Quaternion.LookRotation(direction.normalized, Vector3.up);
-
         int count = Mathf.Max(1, Mathf.FloorToInt(length / arrowSpacing));
 
         for (int i = 0; i < count; i++)
         {
             float t = (i + 0.5f) / count;
             Vector3 pos = Vector3.Lerp(start, end, t);
-            pos.y = arrowHeight;
+
+            pos.y = start.y + 0.15f;  // ← più in alto (era 0.01f)
 
             GameObject arrow = Instantiate(arrowPrefab, pos, rot, arrowsParent);
+
+            arrow.transform.localScale = Vector3.one * 0.4f;  // ← doppio (era 0.2f)
+
             spawnedArrows.Add(arrow);
         }
     }

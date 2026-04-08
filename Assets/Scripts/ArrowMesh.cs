@@ -1,9 +1,10 @@
 using UnityEngine;
 
 [ExecuteAlways]
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class ArrowMesh : MonoBehaviour
 {
-    [SerializeField] Color color = new Color(0f, 1f, 0.2f);
+    [SerializeField] private Color color = new Color(0f, 1f, 0.2f);
 
     void OnEnable() => GenerateArrow();
     void OnValidate() => GenerateArrow();
@@ -11,17 +12,13 @@ public class ArrowMesh : MonoBehaviour
     void GenerateArrow()
     {
         MeshFilter mf = GetComponent<MeshFilter>();
-        if (mf == null) mf = gameObject.AddComponent<MeshFilter>();
-
         MeshRenderer mr = GetComponent<MeshRenderer>();
-        if (mr == null) mr = gameObject.AddComponent<MeshRenderer>();
 
-        Mesh mesh = CreateArrowMesh();
-        mf.sharedMesh = mesh; // ← sharedMesh invece di mesh
+        mf.sharedMesh = CreateArrowMesh();
 
-        Material mat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        Material mat = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
         mat.color = color;
-        mr.sharedMaterial = mat; // ← sharedMaterial invece di material
+        mr.sharedMaterial = mat;
     }
 
     Mesh CreateArrowMesh()
@@ -29,13 +26,13 @@ public class ArrowMesh : MonoBehaviour
         Mesh mesh = new Mesh();
         mesh.name = "ArrowMesh";
 
-        float shaftWidth  = 0.075f;
-        float shaftLength = 0.3f;
-        float headWidth   = 0.2f;
-        float headLength  = 0.2f;
-        float thickness   = 0.04f;
+        float shaftWidth  = 0.15f;
+        float shaftLength = 0.6f;
+        float headWidth   = 0.4f;
+        float headLength  = 0.4f;
+        float thickness   = 0.08f;
 
-        Vector3[] verts = new Vector3[]
+        Vector3[] rawVerts = new Vector3[]
         {
             new Vector3(-shaftWidth/2,  thickness/2,  0),
             new Vector3( shaftWidth/2,  thickness/2,  0),
@@ -53,6 +50,15 @@ public class ArrowMesh : MonoBehaviour
             new Vector3( 0,           -thickness/2,  shaftLength + headLength),
         };
 
+        Vector3[] verts = new Vector3[rawVerts.Length];
+
+        Quaternion rot = Quaternion.Euler(0f, 0f, 90f);
+
+        for (int i = 0; i < rawVerts.Length; i++)
+        {
+            verts[i] = rot * rawVerts[i];
+        }
+
         int[] tris = new int[]
         {
             0, 2, 1,   0, 3, 2,
@@ -68,7 +74,7 @@ public class ArrowMesh : MonoBehaviour
             8, 9, 12,   8, 12, 11,
         };
 
-        mesh.vertices  = verts;
+        mesh.vertices = verts;
         mesh.triangles = tris;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
