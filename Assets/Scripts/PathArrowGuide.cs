@@ -157,4 +157,18 @@ public class PathArrowGuide : MonoBehaviour
         if (distanceText != null)
             distanceText.gameObject.SetActive(false);
     }
+
+    /// <summary>
+    /// Restituisce l'ultimo waypoint della missione (il goal).
+    /// Usato da ROSPathRequester per costruire la PoseStamped.
+    /// </summary>
+    public Transform GetLastWaypoint(MissionType mission)
+    {
+        Transform[] waypoints = GetWaypoints(mission);
+        if (waypoints == null || waypoints.Length == 0) return null;
+        // Cerca l'ultimo non-null
+        for (int i = waypoints.Length - 1; i >= 0; i--)
+            if (waypoints[i] != null) return waypoints[i];
+        return null;
+    }
 }

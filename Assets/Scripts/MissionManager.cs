@@ -22,6 +22,9 @@ public class MissionMenuManager : MonoBehaviour
     [Header("Path Guide")]
     public PathArrowGuide pathArrowGuide;
 
+    [Header("ROS Path")]
+    public ROSPathRequester rosPathRequester;
+
     private MissionType currentMission = MissionType.None;
     private Coroutine completionRoutine;
 
@@ -70,6 +73,9 @@ public class MissionMenuManager : MonoBehaviour
 
         if (pathArrowGuide != null)
             pathArrowGuide.ShowMission(currentMission);
+            
+        if (rosPathRequester != null)
+            rosPathRequester.StartPathUpdates(currentMission);
 
         if (missionPanel != null)
             missionPanel.SetActive(false);
@@ -96,6 +102,9 @@ public class MissionMenuManager : MonoBehaviour
 
         if (pathArrowGuide != null)
             pathArrowGuide.ClearArrows();
+
+        if (rosPathRequester != null)
+            rosPathRequester.StopPathUpdates();
 
         yield return new WaitForSeconds(messageDuration);
 
