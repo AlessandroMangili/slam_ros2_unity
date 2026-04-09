@@ -101,18 +101,18 @@ public class ROSPathRequester : MonoBehaviour
     {
         if (msg?.poses == null || msg.poses.Length == 0)
         {
-            Debug.LogWarning("[ROSPathRequester] Path vuoto ricevuto.");
+            Debug.LogWarning("[ROSPathRequester] Path vuoto.");
             return;
         }
 
+        //Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose.");
         // Aggiungi questo log temporaneo
         Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose. " +
             $"Prima posa ROS: x={msg.poses[0].pose.position.x:F2} " +
             $"y={msg.poses[0].pose.position.y:F2}");
 
-        if (pathVisualizer != null)
-            pathVisualizer.UpdatePath(msg.poses);
-        else
-            Debug.LogError("[ROSPathRequester] pathVisualizer è NULL!");
+        // Rimuove le frecce statiche di PathArrowGuide
+        if (pathArrowGuide != null)
+            pathArrowGuide.ClearArrows();
     }
 }
