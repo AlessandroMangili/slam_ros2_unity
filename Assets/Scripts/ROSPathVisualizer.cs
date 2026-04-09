@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using RosMessageTypes.Geometry;
 
@@ -23,11 +22,26 @@ public class ROSPathVisualizer : MonoBehaviour
         lr = GetComponent<LineRenderer>();
         lr.startWidth    = lineWidth;
         lr.endWidth      = lineWidth;
-        lr.material      = new Material(Shader.Find("Sprites/Default"));
-        lr.startColor    = lineColor;
-        lr.endColor      = lineColor;
-        lr.positionCount = 0;
         lr.useWorldSpace = true;
+        lr.positionCount = 0;
+
+        // Prova shader in ordine fino a trovarne uno valido
+        Shader shader = Shader.Find("Unlit/Color")
+                     ?? Shader.Find("Sprites/Default")
+                     ?? Shader.Find("Standard");
+
+        if (shader != null)
+        {
+            lr.material       = new Material(shader);
+            lr.material.color = lineColor;
+        }
+        else
+        {
+            Debug.LogError("[ROSPathVisualizer] Nessuno shader trovato!");
+        }
+
+        lr.startColor = lineColor;
+        lr.endColor   = lineColor;
     }
 
     public void UpdatePath(PoseStampedMsg[] poses)
@@ -43,13 +57,16 @@ public class ROSPathVisualizer : MonoBehaviour
 
             points[i] = new Vector3(
                 -ry + offsetX,
-                floorY,
+                 floorY,
                  rx + offsetZ
             );
         }
 
         lr.positionCount = points.Length;
         lr.SetPositions(points);
+
+        Debug.Log($"[Visualizer] {points.Length} punti. " +
+                  $"Primo: {points[0]}  Ultimo: {points[points.Length - 1]}");
     }
 
     public void ClearPath()

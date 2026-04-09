@@ -19,7 +19,7 @@ public class ROSPathRequester : MonoBehaviour
     [Header("Aggiornamento live")]
     public float updateInterval = 1.5f;
 
-    [Header("Offset origine mappa (stesso del Visualizer)")]
+    [Header("Offset origine mappa")]
     public float offsetX = 5.02f;
     public float offsetZ = -10.02f;
 
@@ -68,15 +68,8 @@ public class ROSPathRequester : MonoBehaviour
 
         Vector3 uPos = goalTransform.position;
 
-        // Sottrai l'offset prima di convertire Unity → ROS
-        float rosX =  uPos.z - offsetZ;  // offsetZ = -10.02 → sottrai -10.02 = aggiungi 10.02
-        float rosY = -uPos.x + offsetX;  // offsetX =  5.02  → sottrai 5.02
-
-        // Equivalente esplicito:
-        // rosX =  uPos.z + 10.02f
-        // rosY = -uPos.x - 5.02f
-
-        Debug.Log($"[Goal] Unity({uPos.x:F2},{uPos.z:F2}) → ROS({rosX:F2},{rosY:F2})");
+        float rosX =  uPos.z - offsetZ;
+        float rosY = -uPos.x + offsetX;
 
         var msg = new PoseStampedMsg
         {
@@ -105,14 +98,12 @@ public class ROSPathRequester : MonoBehaviour
             return;
         }
 
-        //Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose.");
-        // Aggiungi questo log temporaneo
-        Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose. " +
-            $"Prima posa ROS: x={msg.poses[0].pose.position.x:F2} " +
-            $"y={msg.poses[0].pose.position.y:F2}");
+        Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose.");
 
-        // Rimuove le frecce statiche di PathArrowGuide
-        if (pathArrowGuide != null)
-            pathArrowGuide.ClearArrows();
+        // Disegna la linea del path
+        if (pathVisualizer != null)
+            pathVisualizer.UpdatePath(msg.poses);
+        else
+            Debug.LogError("[ROSPathRequester] pathVisualizer è NULL! Collegalo nell'Inspector.");
     }
 }
