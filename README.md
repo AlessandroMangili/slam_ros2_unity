@@ -2,6 +2,10 @@
 
 > A Unity + ROS 2 project developed for the Virtual Reality course, simulating a search and rescue operation inside a burning building using a teleoperated mobile robot.
 
+
+https://github.com/user-attachments/assets/676c7c5f-774f-4a78-8edb-0c1997646d2d
+
+
 ## Table of Contents
 
 - [Overview](#overview)
