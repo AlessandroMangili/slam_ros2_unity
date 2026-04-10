@@ -177,33 +177,55 @@ A latency measurement script was implemented to measure the round-trip delay bet
 
 ### Prerequisites
 
-- ROS 2 Humble
-- `slam_toolbox`, `nav2_bringup`, `ros_tcp_endpoint` installed
+- ROS 2 Humble with `slam_toolbox`, `nav2_bringup`, `ros_tcp_endpoint`, `teleop_twist_keyboard` installed
 - Unity 2022.x with `com.unity.robotics.ros-tcp-connector` package
+- All ROS 2 packages placed inside a colcon workspace
 
-### Launch order
-
-```bash
-# 1. Start SLAM + Nav2
-ros2 launch ros2_navigation slam_navigation.launch.py use_sim_time:=false
-
-# 2. Start ROS-TCP bridge
-ros2 run ros_tcp_endpoint default_server_endpoint \
-  --ros-args -p ROS_IP:=<ROS_PC_IP><img width="1088" height="572" alt="Screenshot from 2026-04-10 11-04-23" src="https://github.com/user-attachments/assets/4c8f9c4a-4b3b-418f-aebc-6d7148fd5352" />
-
-
-# 3. Start path bridge
-python3 path_bridge.py
-
-# 4. Press Play in Unity
-```
-
-### Teleoperation
+### 1. Build the ROS 2 workspace
 
 ```bash
-# Control the robot from keyboard
-ros2 run teleop_twist_keyboard teleop_twist_keyboard
+cd <your_ws>
+colcon build
+source install/setup.bash
 ```
+
+### 2. Open Unity
+
+Open the project and load **Scene 2**. Do not press Play yet.
+
+### 3. Launch everything from ROS 2
+
+A single launch file starts all required nodes and opens dedicated terminals automatically:
+
+```bash
+ros2 launch unity_slam start.launch.py
+```
+
+This will open the following terminals in sequence:
+
+| Terminal | Content | Delay |
+|:---|:---|:---:|
+| Main process | Static TF publisher + ROS-TCP endpoint | 0s |
+| MAPPING | `slam_toolbox` online async mapping | 0s |
+| NAVIGATION | Nav2 navigation stack | 5s |
+| PATH BRIDGE | `path_bridge` node (Unity ↔ Nav2) | 10s |
+| TELEOPERATION | `teleop_twist_keyboard` | 12s |
+
+### 4. Press Play in Unity
+
+Once all terminals are running and Nav2 is ready, press **Play** in the Unity Editor. The ROS-TCP connection will be established automatically.
+
+### 5. Teleoperate the robot
+
+Switch to the **TELEOPERATION** terminal and use the keyboard to drive the robot:
+
+```
+u i o
+j k l
+m , .
+```
+
+Select a mission from the Unity HUD — the Nav2 path will appear in the scene in real time.
 
 ## Future Work
 
