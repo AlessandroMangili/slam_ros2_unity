@@ -10,43 +10,36 @@ class PathBridge(Node):
     def __init__(self):
         super().__init__('unity_path_bridge')
 
-        # Client per path visivo
         self._compute_client = ActionClient(
             self, ComputePathToPose, 'compute_path_to_pose')
-
-        # Client per navigazione autonoma
         self._nav_client = ActionClient(
             self, NavigateToPose, 'navigate_to_pose')
 
-        # Publisher path visivo verso Unity
         self._path_pub = self.create_publisher(
             Path, '/unity/path_result', 10)
 
-        # Topic path visivo (teleop + autonomo)
         self.create_subscription(
             PoseStamped, '/unity/path_goal',
             self.on_path_goal, 10)
         self.create_subscription(
             PoseStamped, '/unity/path_goal_visual',
             self.on_path_goal, 10)
-
-        # Topic navigazione autonoma — il bridge chiama NavigateToPose
         self.create_subscription(
             PoseStamped, '/unity/nav_goal',
             self.on_nav_goal, 10)
-
-        # Topic cancel
         self.create_subscription(
             Bool, '/unity/cancel_nav',
             self.on_cancel, 10)
 
         self._compute_busy = False
         self._nav_handle   = None
+        self._nav_goal_id  = 0      # ID incrementale per tracciare il goal attivo
+        self._active_id    = -1     # ID del goal attualmente in esecuzione
 
         self.get_logger().info('PathBridge avviato.')
 
     # ----------------------------------------------------------
-    # Path visivo (ComputePathToPose)
+    # Path visivo
     # ----------------------------------------------------------
 
     def on_path_goal(self, msg: PoseStamped):
@@ -78,20 +71,23 @@ class PathBridge(Node):
         result = future.result().result
         if result.path.poses:
             self._path_pub.publish(result.path)
-            self.get_logger().info(
-                f'Path visivo: {len(result.path.poses)} pose')
+            self.get_logger().info(f'Path visivo: {len(result.path.poses)} pose')
         else:
             self.get_logger().warn('Path visivo vuoto.')
         self._compute_busy = False
 
     # ----------------------------------------------------------
-    # Navigazione autonoma (NavigateToPose)
+    # Navigazione autonoma
     # ----------------------------------------------------------
 
     def on_nav_goal(self, msg: PoseStamped):
-        # Cancella eventuale navigazione precedente prima di avviarne una nuova
+        # Incrementa ID goal — ogni nuova navigazione ha il suo ID univoco
+        self._nav_goal_id += 1
+        my_id = self._nav_goal_id
+
+        # Cancella navigazione precedente se attiva
         if self._nav_handle is not None:
-            self.get_logger().info('Nuovo goal: cancello navigazione precedente...')
+            self.get_logger().info(f'Nuovo goal (id={my_id}): cancello navigazione precedente...')
             self._nav_handle.cancel_goal_async()
             self._nav_handle = None
 
@@ -103,39 +99,67 @@ class PathBridge(Node):
         goal.pose = msg
 
         self.get_logger().info(
-            f'Navigazione verso ({msg.pose.position.x:.2f},{msg.pose.position.y:.2f})')
+            f'Navigazione (id={my_id}) verso '
+            f'({msg.pose.position.x:.2f},{msg.pose.position.y:.2f})')
 
         future = self._nav_client.send_goal_async(goal)
-        future.add_done_callback(self.on_nav_accepted)
+        # Passa l'ID al callback tramite lambda
+        future.add_done_callback(lambda f, id=my_id: self.on_nav_accepted(f, id))
 
-    def on_nav_accepted(self, future):
+    def on_nav_accepted(self, future, goal_id):
         handle = future.result()
         if not handle.accepted:
-            self.get_logger().warn('Goal navigazione rifiutato.')
+            self.get_logger().warn(f'Goal (id={goal_id}) rifiutato.')
             return
-        self._nav_handle = handle
-        self.get_logger().info('Goal navigazione accettato.')
-        handle.get_result_async().add_done_callback(self.on_nav_result)
 
-    def on_nav_result(self, future):
-        self._nav_handle = None
-        status = future.result().status
-        if status == 4:  # SUCCEEDED
-            self.get_logger().info('Navigazione completata con successo.')
+        # Salva handle solo se questo è ancora il goal più recente
+        if goal_id == self._nav_goal_id:
+            self._nav_handle  = handle
+            self._active_id   = goal_id
+            self.get_logger().info(f'Goal (id={goal_id}) accettato e attivo.')
         else:
-            self.get_logger().warn(f'Navigazione terminata con status: {status}')
+            # Goal già superato da uno più recente, cancellalo subito
+            self.get_logger().info(f'Goal (id={goal_id}) superato, cancello.')
+            handle.cancel_goal_async()
+            return
+
+        handle.get_result_async().add_done_callback(
+            lambda f, id=goal_id: self.on_nav_result(f, id))
+
+    def on_nav_result(self, future, goal_id):
+        # Ignora risultati di goal non più attivi
+        if goal_id != self._active_id:
+            self.get_logger().info(
+                f'Risultato goal (id={goal_id}) ignorato — non più attivo.')
+            return
+
+        self._nav_handle = None
+        self._active_id  = -1
+        status = future.result().status
+
+        if status == 4:   # SUCCEEDED
+            self.get_logger().info(f'Navigazione (id={goal_id}) completata.')
+        elif status == 5: # CANCELED
+            self.get_logger().info(f'Navigazione (id={goal_id}) cancellata.')
+        else:
+            self.get_logger().warn(
+                f'Navigazione (id={goal_id}) terminata con status: {status}')
 
     # ----------------------------------------------------------
-    # Cancel navigazione
+    # Cancel
     # ----------------------------------------------------------
 
     def on_cancel(self, msg: Bool):
         if not msg.data:
             return
+
         if self._nav_handle is None:
             self.get_logger().warn('Nessuna navigazione attiva da cancellare.')
             return
+
         self.get_logger().info('Cancellazione navigazione...')
+        # Invalida subito l'ID attivo così on_nav_result lo ignorerà
+        self._active_id = -1
         self._nav_handle.cancel_goal_async()
         self._nav_handle = None
 
