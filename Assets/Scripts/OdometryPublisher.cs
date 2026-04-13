@@ -77,10 +77,11 @@ public class OdometryPublisher : MonoBehaviour
         Quaternion rosReadyRot = new Quaternion(-relRotUnity.z, relRotUnity.x, -relRotUnity.y, relRotUnity.w);
         var rosRot = rosReadyRot;
 
-        // Timestamp ROS
-        double t = Time.time;
-        int sec = (int)Mathf.Floor((float)t);
-        uint nanosec = (uint)((t - sec) * 1e9f);
+        // Timestamp ROS — usa il tempo Unix reale, non Time.time
+        // Time.time parte da 0 all'avvio di Unity e causa errori TF in Nav2
+        long unixMs = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        int  sec     = (int)(unixMs / 1000);
+        uint nanosec = (uint)((unixMs % 1000) * 1_000_000);
 
         // Costruzione header
         var header = new HeaderMsg { frame_id = frameId };

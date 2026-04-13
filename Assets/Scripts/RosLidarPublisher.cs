@@ -111,12 +111,12 @@ public class RosPointCloudToLaserScan : MonoBehaviour
             }
         }
 
-        // Timestamp
-        double t = Time.time;
+        // Timestamp ROS — usa il tempo Unix reale
+        long unixMs = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var stamp = new TimeMsg
         {
-            sec = (int)t,
-            nanosec = (uint)((t - Math.Floor(t)) * 1e9)
+            sec     = (int)(unixMs / 1000),
+            nanosec = (uint)((unixMs % 1000) * 1_000_000)
         };
 
         var msg = new LaserScanMsg

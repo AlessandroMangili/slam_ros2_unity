@@ -8,9 +8,10 @@ using RosMessageTypes.Nav;
 public class ROSPathRequester : MonoBehaviour
 {
     [Header("ROS Topics")]
-    public string goalTopic = "/unity/path_goal";
-    public string pathTopic = "/unity/path_result";
-    public string mapFrame  = "map";
+    public string goalTopic       = "/unity/path_goal";
+    public string goalVisualTopic = "/unity/path_goal_visual";
+    public string pathTopic       = "/unity/path_result";
+    public string mapFrame        = "map";
 
     [Header("Riferimenti")]
     public PathArrowGuide    pathArrowGuide;
@@ -27,12 +28,19 @@ public class ROSPathRequester : MonoBehaviour
     private MissionType   currentMission = MissionType.None;
     private Coroutine     updateRoutine;
     private bool          missionActive;
+    private bool          autonomousMode;
 
     void Start()
     {
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<PoseStampedMsg>(goalTopic);
+        ros.RegisterPublisher<PoseStampedMsg>(goalVisualTopic);
         ros.Subscribe<PathMsg>(pathTopic, OnPathReceived);
+    }
+
+    public void SetAutonomousMode(bool value)
+    {
+        autonomousMode = value;
     }
 
     public void StartPathUpdates(MissionType mission)
@@ -47,6 +55,7 @@ public class ROSPathRequester : MonoBehaviour
     {
         missionActive  = false;
         currentMission = MissionType.None;
+        autonomousMode = false;
         if (updateRoutine != null) StopCoroutine(updateRoutine);
         if (pathVisualizer != null) pathVisualizer.ClearPath();
     }
@@ -63,6 +72,7 @@ public class ROSPathRequester : MonoBehaviour
     private void PublishGoal()
     {
         if (pathArrowGuide == null) return;
+
         Transform goalTransform = pathArrowGuide.GetLastWaypoint(currentMission);
         if (goalTransform == null) return;
 
@@ -87,7 +97,10 @@ public class ROSPathRequester : MonoBehaviour
             }
         };
 
-        ros.Publish(goalTopic, msg);
+        // In modalità autonoma usa il topic visivo separato
+        // così il bridge non interferisce con Nav2 NavigateToPose
+        string topic = autonomousMode ? goalVisualTopic : goalTopic;
+        ros.Publish(topic, msg);
     }
 
     private void OnPathReceived(PathMsg msg)
@@ -100,10 +113,9 @@ public class ROSPathRequester : MonoBehaviour
 
         Debug.Log($"[ROSPathRequester] Ricevute {msg.poses.Length} pose.");
 
-        // Disegna la linea del path
         if (pathVisualizer != null)
             pathVisualizer.UpdatePath(msg.poses);
         else
-            Debug.LogError("[ROSPathRequester] pathVisualizer è NULL! Collegalo nell'Inspector.");
+            Debug.LogError("[ROSPathRequester] pathVisualizer è NULL!");
     }
 }
