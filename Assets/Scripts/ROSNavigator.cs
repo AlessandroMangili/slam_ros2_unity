@@ -6,7 +6,7 @@ using RosMessageTypes.Std;
 public class ROSNavigator : MonoBehaviour
 {
     [Header("ROS Topics")]
-    public string goalTopic      = "/goal_pose";
+    public string navGoalTopic   = "/unity/nav_goal";    // ← bridge gestisce NavigateToPose
     public string cancelNavTopic = "/unity/cancel_nav";
     public string mapFrame       = "map";
 
@@ -24,7 +24,7 @@ public class ROSNavigator : MonoBehaviour
     void Start()
     {
         ros = ROSConnection.GetOrCreateInstance();
-        ros.RegisterPublisher<PoseStampedMsg>(goalTopic);
+        ros.RegisterPublisher<PoseStampedMsg>(navGoalTopic);
         ros.RegisterPublisher<BoolMsg>(cancelNavTopic);
     }
 
@@ -43,23 +43,15 @@ public class ROSNavigator : MonoBehaviour
         currentMission = MissionType.None;
 
         ros.Publish(cancelNavTopic, new BoolMsg { data = true });
-        Debug.Log("[ROSNavigator] Cancel inviato a path_bridge.");
+        Debug.Log("[ROSNavigator] Cancel inviato al bridge.");
     }
 
     private void PublishGoal()
     {
-        if (pathArrowGuide == null)
-        {
-            Debug.LogError("[ROSNavigator] pathArrowGuide è NULL!");
-            return;
-        }
+        if (pathArrowGuide == null) return;
 
         Transform goalTransform = pathArrowGuide.GetLastWaypoint(currentMission);
-        if (goalTransform == null)
-        {
-            Debug.LogWarning("[ROSNavigator] Nessun waypoint goal trovato.");
-            return;
-        }
+        if (goalTransform == null) return;
 
         Vector3    uPos = goalTransform.position;
         Quaternion uRot = goalTransform.rotation;
@@ -83,7 +75,7 @@ public class ROSNavigator : MonoBehaviour
             }
         };
 
-        ros.Publish(goalTopic, msg);
-        Debug.Log($"[ROSNavigator] Goal pubblicato: ROS({rosX:F2},{rosY:F2})");
+        ros.Publish(navGoalTopic, msg);
+        Debug.Log($"[ROSNavigator] Nav goal pubblicato: ROS({rosX:F2},{rosY:F2})");
     }
 }
