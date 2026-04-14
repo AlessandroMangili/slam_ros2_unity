@@ -1412,11 +1412,11 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1174818943}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 90}
-  m_AnchorMin: {x: 1, y: 1}
-  m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -5, y: -5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 210, y: 210}
-  m_Pivot: {x: 1, y: 1}
+  m_Pivot: {x: 0, y: 0}
 --- !u!114 &205123218
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1429,9 +1429,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 70116f6ab09730420ac69ee72d8914f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CostmapOverlaySubscriber
-  topicName: /global_costmap/costmap_raw
-  zoom: 2
+  topicName: /global_costmap/costmap
   maxAlpha: 0.45
+  showFree: 0
+  mapImage: {fileID: 1905849269}
+  overlayImage: {fileID: 205123219}
 --- !u!114 &205123219
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1737,7 +1739,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: Auto Navigation
+  m_Text: Auto navigation
 --- !u!222 &311179258
 CanvasRenderer:
   m_ObjectHideFlags: 0
