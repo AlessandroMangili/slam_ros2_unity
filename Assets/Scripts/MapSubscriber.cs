@@ -14,7 +14,7 @@ public class MapSubscriber : MonoBehaviour
     readonly object lockObj = new object();
 
     [SerializeField] string topicName = "/map";
-    [SerializeField] float zoom = 2f;
+    [SerializeField] float zoom = 2.5f;
 
     void Start()
     {
