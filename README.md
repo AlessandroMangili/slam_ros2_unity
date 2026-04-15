@@ -1,19 +1,17 @@
-# SLAM ROS2 Unity — Search & Rescue Teleoperation System
+# SLAM ROS2 Unity —  Search & Rescue Teleoperation and Autonomous Navigation System
 
-> A Unity + ROS 2 project developed for the Virtual Reality course, simulating a search and rescue operation inside a burning building using a teleoperated mobile robot.
+> A Unity + ROS 2 project developed for the Virtual Reality course of my Master's in Robotics Engineering.
+> The system simulates a search-and-rescue mission inside a burning building, where an operator can either teleoperate a ground robot or switch to autonomous navigation directly from the XR HUD.
 
-
-https://github.com/user-attachments/assets/676c7c5f-774f-4a78-8edb-0c1997646d2d
-
+https://github.com/user-attachments/assets/499b664c-44c8-46c0-ac39-f7f07ecb1f09
 
 ## Table of Contents
-
 - [Overview](#overview)
 - [System Architecture](#system-architecture)
 - [Robot & Environment](#robot--environment)
+- [Navigation Modes](#navigation-modes)
 - [ROS 2 Integration](#ros-2-integration)
 - [Sensor Stack](#sensor-stack)
-- [Navigation & Path Planning](#navigation--path-planning)
 - [HUD & User Interface](#hud--user-interface)
 - [Communication Latency](#communication-latency)
 - [Setup & Launch](#setup--launch)
@@ -45,7 +43,7 @@ The system is built on the **Unity game engine** as the simulation and visualiza
 └─────────────────────────────────────┘        └──────────────────────────────────┘
 ```
 
-The bridge between Unity and ROS 2 is a custom Python node (`path_bridge.py`) that subscribes to the goal pose published by Unity, calls the Nav2 `ComputePathToPose` action server, and republishes the resulting path back to Unity on a simple topic.
+The bridge between Unity and ROS 2 is handled by a custom Python node (`path_bridge.py`). It receives goal poses from Unity, communicates with Nav2, and sends back either the computed path or navigation state updates depending on the selected mode.
 
 ## Robot & Environment
 
@@ -70,6 +68,29 @@ The scene is a warehouse interior featuring:
 | <img width="1088" height="572" alt="Screenshot from 2026-04-10 11-04-23" src="https://github.com/user-attachments/assets/e38cd154-636f-4ab5-a0c7-a0fecc355fa4" /> |
 |:---:|
 | *Mission selection menu shown to the operator at startup* |
+
+## Navigation Modes
+
+### Teleoperation Mode
+
+In teleoperation mode, the operator drives the robot manually using keyboard input or controller commands published to `/cmd_vel`.
+
+At the same time, the system continuously computes and visualizes the optimal path to the selected mission goal using Nav2’s `ComputePathToPose`. This gives the operator live navigation feedback while preserving full manual control.
+
+### Autonomous Mode
+
+A toggle in the HUD enables autonomous navigation. When this mode is activated, the robot switches from manual driving to Nav2-based autonomy and navigates independently to the selected goal using `NavigateToPose`.
+
+The navigation is dynamically replanned in real time as the SLAM map evolves. The operator can take back control at any time by switching the toggle back to teleoperation mode.
+
+### Shared Behavior in Both Modes
+
+In both modes, the operator always sees:
+
+* the live SLAM map,
+* the current goal distance,
+* the mission selection state,
+* and the computed route in the scene.
 
 ## ROS 2 Integration
 
@@ -111,32 +132,46 @@ A 360° LiDAR scans the environment and publishes on `/point_cloud`. The data fe
 
 The `online_async` mode of slam_toolbox is used to build the occupancy map incrementally as the robot explores. The operator starts with zero knowledge of the building interior; the map is constructed entirely from LiDAR data during the mission.
 
-### Path Planning — Nav2 `ComputePathToPose`
+### Path Planning — Nav2 `ComputePathToPose` and `NavigateToPose`
 
-When the operator selects a mission, Unity publishes the goal pose (last waypoint of the selected mission) to `/unity/path_goal`. The `path_bridge.py` node intercepts this, calls the Nav2 `ComputePathToPose` action server, and publishes the resulting path to `/unity/path_result`.
+When the operator selects a mission, Unity publishes the goal pose (last waypoint of the selected mission) to `/unity/path_goal`. The `path_bridge.py` node intercepts this request and interacts with Nav2 depending on the selected operation mode.
+
+In **teleoperation mode**, the bridge calls the Nav2 `ComputePathToPose` action server and publishes the resulting path to `/unity/path_result`.
+
+In **autonomous mode**, the same goal is forwarded to the Nav2 `NavigateToPose` action server, allowing the robot to move independently toward the selected mission target while continuously replanning based on the evolving SLAM map.
 
 Unity subscribes to `/unity/path_result` and renders the path as a **green LineRenderer** on the floor of the scene, updated every ~1.5 seconds as the robot moves.
 
-```
+```text
 Operator selects mission
         │
         ▼
 Unity publishes PoseStamped → /unity/path_goal
         │
         ▼
-path_bridge.py calls ComputePathToPose action
+path_bridge.py checks operation mode
         │
-        ▼
-Nav2 computes path using LiDAR costmap + SLAM map
+        ├── Teleop mode ──► ComputePathToPose
+        │                  │
+        │                  ▼
+        │          Nav2 computes path using LiDAR costmap + SLAM map
+        │                  │
+        │                  ▼
+        │          path_bridge.py publishes nav_msgs/Path → /unity/path_result
+        │                  │
+        │                  ▼
+        │          Unity LineRenderer draws path on scene floor
         │
-        ▼
-path_bridge.py publishes nav_msgs/Path → /unity/path_result
-        │
-        ▼
-Unity LineRenderer draws path on scene floor (live update)
+        └── Autonomous mode ─► NavigateToPose
+                           │
+                           ▼
+                   Nav2 autonomously drives the robot to the goal
+                           │
+                           ▼
+                   Robot replans in real time as the map updates
 ```
 
-> **Note:** Since this is a teleoperation system, autonomous navigation is not enabled. The robot is always driven manually by the operator; Nav2 is used only for path *visualization*, not execution.
+> **Note:** In teleoperation mode, the operator drives the robot manually and Nav2 is used for path visualization only. In autonomous mode, Nav2 takes control of motion through `NavigateToPose`, and manual control can be restored at any time through the HUD toggle.
 
 ### Static Arrow Guides
 
@@ -229,6 +264,7 @@ Select a mission from the Unity HUD — the Nav2 path will appear in the scene i
 
 ## Future Work
 
-- **Autonomous navigation mode**: a toggle in the HUD would allow the operator to hand off control to Nav2, enabling fully autonomous goal-reaching using the `NavigateToPose` action. The operator could re-enable manual control at any time via a flag.
 - **Multi-robot support**: extend the system to coordinate multiple robots exploring different sections of the building simultaneously.
 - **Victim detection**: integrate an object detection model on the camera feeds to highlight potential survivors on the map.
+
+
