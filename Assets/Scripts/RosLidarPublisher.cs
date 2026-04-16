@@ -6,46 +6,89 @@ using RosMessageTypes.Sensor;
 using RosMessageTypes.Std;
 using RosMessageTypes.BuiltinInterfaces;
 
+/// <summary>
+/// Simulates a 2D LiDAR by casting a 3D grid of rays and projecting
+/// the hits onto a horizontal slice, then publishing the result as a
+/// ROS2 LaserScan message.
+///
+/// The scan is built in two passes:
+///   1. Rays are cast across the full vertical × horizontal FOV grid.
+///   2. Each hit is converted to ROS FLU coordinates and checked against
+///      a configurable height slice (laserSliceMinZ / laserSliceMaxZ).
+///      Only points within the slice contribute to the 2D scan.
+///   3. For each horizontal angle bin, the closest hit distance in the
+///      XY plane is kept (min-distance per bin).
+///
+/// The resulting ranges array maps directly to a LaserScan message with
+/// angle_min = 0 and angle_max = 2π.
+///
+/// Timestamp uses real Unix time (DateTimeOffset.UtcNow) to avoid TF
+/// lookup failures caused by Time.time starting at 0 on Play.
+/// </summary>
 public class RosPointCloudToLaserScan : MonoBehaviour
 {
     [Header("ROS Settings")]
     public string topicName = "/scan";
-    public string frameId = "base_scan";
+    public string frameId   = "base_scan";
 
     [Header("Scan Settings")]
-    public int numRaysHorizontal = 360;
-    public int numRaysVertical = 16;
-    public float horizontalFov = 360f;
-    public float verticalFovMin = -15f;
-    public float verticalFovMax = 15f;
-    public float maxDistance = 10f;
-    public float scanRate = 5f;
+    [Tooltip("Number of horizontal angle bins in the output LaserScan")]
+    public int   numRaysHorizontal = 360;
+
+    [Tooltip("Number of vertical layers used to populate each horizontal bin")]
+    public int   numRaysVertical   = 16;
+
+    [Tooltip("Total horizontal field of view in degrees")]
+    public float horizontalFov     = 360f;
+
+    [Tooltip("Lowest vertical angle in degrees (negative = below horizon)")]
+    public float verticalFovMin    = -15f;
+
+    [Tooltip("Highest vertical angle in degrees")]
+    public float verticalFovMax    =  15f;
+
+    [Tooltip("Maximum raycast range in metres")]
+    public float maxDistance       = 10f;
+
+    [Tooltip("Number of full scans published per second")]
+    public float scanRate          = 5f;
+
+    [Tooltip("Hits closer than this distance are discarded (removes robot body returns)")]
     public float minDistanceFilter = 0.3f;
 
-    [Header("LaserScan Slice Settings")]
-    [Tooltip("Altezza minima in ROS (z) per considerare un punto nel laser slice")]
+    [Header("Laser Slice Settings")]
+    [Tooltip("Minimum ROS z value (metres) for a hit to be included in the 2D slice")]
     public float laserSliceMinZ = -0.05f;
-    [Tooltip("Altezza massima in ROS (z) per considerare un punto nel laser slice")]
-    public float laserSliceMaxZ = 0.05f;
+
+    [Tooltip("Maximum ROS z value (metres) for a hit to be included in the 2D slice")]
+    public float laserSliceMaxZ =  0.05f;
+
+    // ─── Privati ─────────────────────────────────────────────────────────────
 
     private ROSConnection ros;
-    private float hAngleIncrement;
-    private float vAngleIncrement;
+    private float         hAngleIncrement;
+    private float         vAngleIncrement;
+
+    // ─── Unity lifecycle ─────────────────────────────────────────────────────
 
     void Start()
     {
         ros = ROSConnection.GetOrCreateInstance();
         ros.RegisterPublisher<LaserScanMsg>(topicName);
 
+        // Pre-compute angular increments to avoid per-frame division
         hAngleIncrement = (horizontalFov * Mathf.Deg2Rad) / numRaysHorizontal;
-        vAngleIncrement = ((verticalFovMax - verticalFovMin) * Mathf.Deg2Rad) / Mathf.Max(1, numRaysVertical - 1);
+        vAngleIncrement = ((verticalFovMax - verticalFovMin) * Mathf.Deg2Rad)
+                          / Mathf.Max(1, numRaysVertical - 1);
 
         StartCoroutine(PublishLoop());
     }
 
+    // ─── Publish loop ────────────────────────────────────────────────────────
+
     IEnumerator PublishLoop()
     {
-        WaitForSeconds wait = new WaitForSeconds(1f / scanRate);
+        var wait = new WaitForSeconds(1f / scanRate);
         while (true)
         {
             Publish();
@@ -53,9 +96,11 @@ public class RosPointCloudToLaserScan : MonoBehaviour
         }
     }
 
+    // ─── Scan and publish ────────────────────────────────────────────────────
+
     void Publish()
     {
-        // Array ranges inizializzato a maxDistance (nessun ostacolo)
+        // Initialise all bins to maxDistance (no obstacle detected)
         float[] ranges = new float[numRaysHorizontal];
         for (int i = 0; i < numRaysHorizontal; i++)
             ranges[i] = maxDistance;
@@ -68,7 +113,7 @@ public class RosPointCloudToLaserScan : MonoBehaviour
             {
                 float yawRad = h * hAngleIncrement;
 
-                // Direzione nel frame locale Unity
+                // Ray direction in the sensor's local Unity space
                 Vector3 dirUnity = new Vector3(
                     Mathf.Cos(pitchRad) * Mathf.Cos(yawRad),
                     Mathf.Sin(pitchRad),
@@ -77,42 +122,35 @@ public class RosPointCloudToLaserScan : MonoBehaviour
 
                 Ray ray = new Ray(transform.position, transform.TransformDirection(dirUnity));
 
-                if (!Physics.Raycast(ray, out RaycastHit hit, maxDistance))
-                    continue;
+                if (!Physics.Raycast(ray, out RaycastHit hit, maxDistance)) continue;
+                if (hit.distance < minDistanceFilter) continue;
 
-                float dist = hit.distance;
-                if (dist < minDistanceFilter)
-                    continue;
+                // Hit point in the sensor's local Unity frame
+                Vector3 pUnity = dirUnity.normalized * hit.distance;
 
-                // Punto in frame locale Unity
-                Vector3 pUnity = dirUnity.normalized * dist;
-
-                // Conversione Unity -> ROS (FLU)
+                // Convert Unity (right, up, forward) → ROS FLU (forward, left, up)
                 float rx = pUnity.z;
                 float ry = -pUnity.x;
                 float rz = pUnity.y;
 
-                // Filtra solo i punti nello slice orizzontale
-                if (rz < laserSliceMinZ || rz > laserSliceMaxZ)
-                    continue;
+                // Discard points outside the horizontal height slice
+                if (rz < laserSliceMinZ || rz > laserSliceMaxZ) continue;
 
-                // Calcola l'angolo orizzontale ROS (atan2 nel piano XY)
+                // Map the hit's horizontal angle to a range bin index
                 float angleRos = Mathf.Atan2(ry, rx);
-                if (angleRos < 0)
-                    angleRos += 2f * Mathf.PI;
+                if (angleRos < 0f) angleRos += 2f * Mathf.PI;
 
-                // Mappa l'angolo all'indice del ray
                 int idx = Mathf.RoundToInt(angleRos / hAngleIncrement) % numRaysHorizontal;
 
-                // Prendi la distanza minima per quell'angolo
+                // Keep only the closest hit in the XY plane for this bin
                 float distXY = Mathf.Sqrt(rx * rx + ry * ry);
                 if (distXY < ranges[idx])
                     ranges[idx] = distXY;
             }
         }
 
-        // Timestamp ROS — usa il tempo Unix reale
-        long unixMs = System.DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        // Timestamp — uses real Unix time to avoid TF errors in Nav2
+        long unixMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         var stamp = new TimeMsg
         {
             sec     = (int)(unixMs / 1000),
@@ -124,17 +162,17 @@ public class RosPointCloudToLaserScan : MonoBehaviour
             header = new HeaderMsg
             {
                 frame_id = frameId,
-                stamp = stamp
+                stamp    = stamp
             },
-            angle_min = 0f,
-            angle_max = 2f * Mathf.PI,
+            angle_min       = 0f,
+            angle_max       = 2f * Mathf.PI,
             angle_increment = hAngleIncrement,
-            time_increment = 0f,
-            scan_time = 1f / scanRate,
-            range_min = minDistanceFilter,
-            range_max = maxDistance,
-            ranges = ranges,
-            intensities = new float[0]
+            time_increment  = 0f,
+            scan_time       = 1f / scanRate,
+            range_min       = minDistanceFilter,
+            range_max       = maxDistance,
+            ranges          = ranges,
+            intensities     = new float[0]
         };
 
         ros.Publish(topicName, msg);

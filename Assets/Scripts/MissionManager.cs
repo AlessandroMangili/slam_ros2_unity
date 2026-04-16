@@ -5,6 +5,20 @@ using TMPro;
 
 public enum MissionType { None, MissionA, MissionB, MissionC }
 
+/// <summary>
+/// Manages mission selection, autonomous/teleoperation mode switching,
+/// and mission completion flow.
+///
+/// Missions can be run in two modes:
+///   - Teleoperation: static arrow guides are shown and the visual path
+///     is computed via ComputePathToPose, but the robot is driven manually.
+///   - Autonomous: Nav2 NavigateToPose is triggered once to drive the robot
+///     to the goal automatically. The visual path uses a separate topic
+///     so it does not interfere with Nav2.
+///
+/// The autonomous toggle can be flipped at any time, even mid-mission,
+/// to switch between the two modes on the fly.
+/// </summary>
 public class MissionMenuManager : MonoBehaviour
 {
     [Header("UI")]
@@ -12,7 +26,9 @@ public class MissionMenuManager : MonoBehaviour
     public TextMeshProUGUI selectedMissionLabel;
     public TextMeshProUGUI missionButtonText;
     public TextMeshProUGUI statusMessageText;
-    public float           messageDuration = 2f;
+
+    [Tooltip("Seconds the completion message is shown before the menu reopens")]
+    public float messageDuration = 2f;
 
     [Header("Autonomous Mode Toggle")]
     public Toggle          autonomousToggle;
@@ -27,9 +43,13 @@ public class MissionMenuManager : MonoBehaviour
     [Header("ROS Navigation")]
     public ROSNavigator rosNavigator;
 
-    private MissionType currentMission    = MissionType.None;
+    private MissionType currentMission   = MissionType.None;
     private Coroutine   completionRoutine;
-    private bool        autonomousMode => autonomousToggle != null && autonomousToggle.isOn;
+
+    // Convenience property — reads the toggle state directly
+    private bool autonomousMode => autonomousToggle != null && autonomousToggle.isOn;
+
+    // ─── Unity lifecycle ─────────────────────────────────────────────────────
 
     void Start()
     {
@@ -46,10 +66,13 @@ public class MissionMenuManager : MonoBehaviour
         UpdateToggleLabel();
     }
 
-    // -------------------------------------------------------
-    // Toggle
-    // -------------------------------------------------------
+    // ─── Autonomous toggle ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Called when the autonomous mode toggle changes value.
+    /// If a mission is already active, immediately switches the robot's
+    /// operating mode without restarting the mission.
+    /// </summary>
     private void OnToggleChanged(bool value)
     {
         UpdateToggleLabel();
@@ -58,7 +81,7 @@ public class MissionMenuManager : MonoBehaviour
 
         if (value)
         {
-            // Toggle attivato durante missione → avvia navigazione autonoma
+            // Switched to autonomous mid-mission → start Nav2 navigation
             if (rosPathRequester != null)
                 rosPathRequester.SetAutonomousMode(true);
 
@@ -67,7 +90,7 @@ public class MissionMenuManager : MonoBehaviour
         }
         else
         {
-            // Toggle disattivato → ferma il robot, torna a teleoperazione
+            // Switched to teleoperation → cancel Nav2 and resume manual driving
             if (rosPathRequester != null)
                 rosPathRequester.SetAutonomousMode(false);
 
@@ -79,59 +102,55 @@ public class MissionMenuManager : MonoBehaviour
     private void UpdateToggleLabel()
     {
         if (toggleLabel == null) return;
-        toggleLabel.text = autonomousMode
-            ? "Auto Navigation: ON"
-            : "Auto Navigation: OFF";
+        toggleLabel.text = autonomousMode ? "Auto Navigation: ON" : "Auto Navigation: OFF";
     }
 
-    // -------------------------------------------------------
-    // Menu
-    // -------------------------------------------------------
+    // ─── Menu ────────────────────────────────────────────────────────────────
 
-    public void OpenMenu()
-    {
-        if (missionPanel != null) missionPanel.SetActive(true);
-    }
+    public void OpenMenu()  { if (missionPanel != null) missionPanel.SetActive(true);  }
+    public void CloseMenu() { if (missionPanel != null) missionPanel.SetActive(false); }
 
-    public void CloseMenu()
-    {
-        if (missionPanel != null) missionPanel.SetActive(false);
-    }
-
+    // Wired to the three mission buttons in the Inspector
     public void SelectMissionA() => StartMission(MissionType.MissionA);
     public void SelectMissionB() => StartMission(MissionType.MissionB);
     public void SelectMissionC() => StartMission(MissionType.MissionC);
 
-    // -------------------------------------------------------
-    // Missione
-    // -------------------------------------------------------
+    // ─── Mission start ───────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Starts the selected mission:
+    ///   - Always spawns static arrow guides.
+    ///   - In autonomous mode: sends the Nav2 goal (once) and starts the
+    ///     visual path on a separate topic.
+    ///   - In teleoperation mode: only starts the visual path via
+    ///     ComputePathToPose (no Nav2 goal is sent).
+    /// </summary>
     private void StartMission(MissionType mission)
     {
         currentMission = mission;
         UpdateLabel();
 
-        // Frecce statiche sempre attive
+        // Static arrow guides are always active regardless of mode
         if (pathArrowGuide != null)
             pathArrowGuide.ShowMission(currentMission);
 
         if (autonomousMode)
         {
-            // Modalità autonoma:
-            // ROSPathRequester usa topic visivo separato → non interferisce con Nav2
+            // Visual path uses a dedicated topic so it does not interfere
+            // with Nav2's own ComputePathToPose requests
             if (rosPathRequester != null)
             {
                 rosPathRequester.SetAutonomousMode(true);
                 rosPathRequester.StartPathUpdates(currentMission);
             }
 
-            // Nav2 NavigateToPose — pubblicato UNA SOLA VOLTA
+            // Send the NavigateToPose goal exactly once
             if (rosNavigator != null)
                 rosNavigator.StartNavigation(currentMission);
         }
         else
         {
-            // Modalità teleoperazione: solo ComputePathToPose per il visivo
+            // Teleoperation: compute visual path only, no autonomous goal
             if (rosPathRequester != null)
             {
                 rosPathRequester.SetAutonomousMode(false);
@@ -142,10 +161,12 @@ public class MissionMenuManager : MonoBehaviour
         if (missionPanel != null) missionPanel.SetActive(false);
     }
 
-    // -------------------------------------------------------
-    // Completamento missione
-    // -------------------------------------------------------
+    // ─── Mission completion ──────────────────────────────────────────────────
 
+    /// <summary>
+    /// Called by PathArrowGuide when the robot reaches the goal proximity threshold.
+    /// Shows a completion message, clears all guides, and reopens the mission menu.
+    /// </summary>
     public void OnMissionCompleted()
     {
         if (completionRoutine != null) StopCoroutine(completionRoutine);
@@ -163,9 +184,9 @@ public class MissionMenuManager : MonoBehaviour
         currentMission = MissionType.None;
         UpdateLabel();
 
-        if (pathArrowGuide != null)    pathArrowGuide.ClearArrows();
-        if (rosPathRequester != null)  rosPathRequester.StopPathUpdates();
-        if (rosNavigator != null)      rosNavigator.CancelNavigation();
+        if (pathArrowGuide   != null) pathArrowGuide.ClearArrows();
+        if (rosPathRequester != null) rosPathRequester.StopPathUpdates();
+        if (rosNavigator     != null) rosNavigator.CancelNavigation();
 
         yield return new WaitForSeconds(messageDuration);
 
@@ -175,9 +196,7 @@ public class MissionMenuManager : MonoBehaviour
         OpenMenu();
     }
 
-    // -------------------------------------------------------
-    // Label
-    // -------------------------------------------------------
+    // ─── Label helpers ───────────────────────────────────────────────────────
 
     private void UpdateLabel()
     {
@@ -190,7 +209,7 @@ public class MissionMenuManager : MonoBehaviour
         };
 
         if (selectedMissionLabel != null) selectedMissionLabel.text = label;
-        if (missionButtonText != null)
+        if (missionButtonText    != null)
             missionButtonText.text = currentMission == MissionType.None
                 ? "No current mission"
                 : label;
