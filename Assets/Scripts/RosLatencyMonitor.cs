@@ -149,7 +149,6 @@ public class ROSLatencyMonitor : MonoBehaviour
         }
 
         float rtt    = _smoothedRttMs;
-        float oneWay = rtt * 0.5f;
 
         Color  c;
         string quality;
@@ -170,7 +169,7 @@ public class ROSLatencyMonitor : MonoBehaviour
             quality = "poor";
         }
 
-        latencyLabel.text  = $"● RTT {rtt:0.0}ms  (~{oneWay:0.0}ms/way)  {quality}";
+        latencyLabel.text  = $"● RTT {rtt:0.0}ms  {quality}";
         latencyLabel.color = c;
     }
 }
