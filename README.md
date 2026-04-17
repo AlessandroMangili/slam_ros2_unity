@@ -3,7 +3,7 @@
 > A Unity + ROS 2 project developed for the Virtual Reality course of my Master's in Robotics Engineering.
 > The system simulates a search-and-rescue mission inside a burning building, where an operator can either teleoperate a ground robot or switch to autonomous navigation directly from the XR HUD.
 
-https://github.com/user-attachments/assets/499b664c-44c8-46c0-ac39-f7f07ecb1f09
+https://github.com/user-attachments/assets/29792f46-3e6c-4c65-98ff-3afa90b438d4
 
 ## Table of Contents
 - [Overview](#overview)
@@ -37,9 +37,9 @@ The operator can drive the robot manually or hand off control to Nav2 at any tim
 │                                     │        │                                  │
 │  MissionMenuManager (mission select)│        │  ros_tcp_endpoint                │
 │  PathArrowGuide     (static arrows) │        │  slam_toolbox    (mapping)       │
-│  ROSPathRequester   (goal publisher)│◄──────►│  nav2_bringup    (path planning) │
+│  ROSPathRequester   (goal publisher)│        │  nav2_bringup    (path planning) │
 │  ROSPathVisualizer  (line renderer) │        │  path_bridge.py  (bridge)        │
-│  ROSNavigator       (nav2 goal)     │        │  /unity/path_goal topic          │
+│  ROSNavigator       (nav2 goal)     │◄──────►│  /unity/path_goal topic          │
 │  RadarDisplay       (radar display) │        │  /unity/path_result topic        │
 │  CameraBlending     (front/rear)    │        │  /unity/nav_goal topic           │
 │  OdometryPublisher  (odom publish)  │        │  /unity/cancel_nav topic         │
