@@ -1,4 +1,4 @@
-# SLAM ROS2 Unity —  Search & Rescue Teleoperation and Autonomous Navigation System
+# SLAM ROS2 Unity — Search & Rescue Teleoperation and Autonomous Navigation System
 
 > A Unity + ROS 2 project developed for the Virtual Reality course of my Master's in Robotics Engineering.
 > The system simulates a search-and-rescue mission inside a burning building, where an operator can either teleoperate a ground robot or switch to autonomous navigation directly from the XR HUD.
@@ -23,7 +23,9 @@ This project simulates a **first-responder teleoperation scenario**: an operator
 
 The system is built on the **Unity game engine** as the simulation and visualization frontend, with **ROS 2 (Humble)** handling all robotics computation on the backend. Communication between the two is managed via the **ROS-TCP-Connector** package.
 
-| <img width="1088" height="572" alt="Screenshot from 2026-04-10 11-35-21" src="https://github.com/user-attachments/assets/20662602-8cbb-4cc7-a4d4-9f2fc6ad8933" /> |
+The operator can drive the robot manually or hand off control to Nav2 at any time using a toggle in the HUD — without interrupting the mission or restarting the navigation stack.
+
+| <img width="1088" height="572" alt="navigation" src="https://github.com/user-attachments/assets/6c4f8776-5f63-4d20-8b07-4791f30d692a" /> |
 |:---:|
 | *Mission A active: the green path computed by Nav2 is displayed in real time overlaid on the scene* |
 
@@ -33,17 +35,20 @@ The system is built on the **Unity game engine** as the simulation and visualiza
 ┌─────────────────────────────────────┐        ┌──────────────────────────────────┐
 │         Unity (Frontend)            │        │         ROS 2 (Backend)          │
 │                                     │        │                                  │
-│  MissionMenuManager (mission choose)│        │  ros_tcp_endpoint                │
+│  MissionMenuManager (mission select)│        │  ros_tcp_endpoint                │
 │  PathArrowGuide     (static arrows) │        │  slam_toolbox    (mapping)       │
 │  ROSPathRequester   (goal publisher)│◄──────►│  nav2_bringup    (path planning) │
-│  ROSPathVisualizer  (line renderer) │        │  path_bridge.py  (bridge for nav)│
-│  RadarDisplay       (radar display) │        │  /unity/path_goal topic          │
-│  CameraBlending     (front and back)│        │  /unity/path_result topic        │
-│  OdometryPublisher  (odom publish)  │        │  /odom, /map, /plan topics       │
+│  ROSPathVisualizer  (line renderer) │        │  path_bridge.py  (bridge)        │
+│  ROSNavigator       (nav2 goal)     │        │  /unity/path_goal topic          │
+│  RadarDisplay       (radar display) │        │  /unity/path_result topic        │
+│  CameraBlending     (front/rear)    │        │  /unity/nav_goal topic           │
+│  OdometryPublisher  (odom publish)  │        │  /unity/cancel_nav topic         │
+│  RobotMapMarker     (map overlay)   │        │  /odom, /map, /scan topics       │
+│  ROSLatencyMonitor  (RTT display)   │        │                                  │
 └─────────────────────────────────────┘        └──────────────────────────────────┘
 ```
 
-The bridge between Unity and ROS 2 is handled by a custom Python node (`path_bridge.py`). It receives goal poses from Unity, communicates with Nav2, and sends back either the computed path or navigation state updates depending on the selected mode.
+The bridge between Unity and ROS 2 is handled by a custom Python node (`path_bridge.py`). It receives goal poses from Unity, communicates with Nav2, and sends back either the computed path or navigation state updates depending on the selected mode. It also handles latency measurement via a ping/pong echo mechanism.
 
 ## Robot & Environment
 
@@ -52,9 +57,8 @@ The bridge between Unity and ROS 2 is handled by a custom Python node (`path_bri
 The robot model used is the **TurtleBot3 Waffle**, imported into Unity as a prefab. It is equipped with:
 
 - 4 cameras (front, rear, left, right)
-- 2 wheels
-- 2 castors
-- A simulated LiDAR (360°)
+- 2 wheels and 2 castors
+- A simulated 360° LiDAR
 - Odometry publisher
 
 ### Environment — Warehouse
@@ -65,7 +69,7 @@ The scene is a warehouse interior featuring:
 - Three mission goal positions (Exit, Shelves, Barrels)
 - Static arrow guides placed along pre-authored waypoint paths
 
-| <img width="1088" height="572" alt="Screenshot from 2026-04-10 11-04-23" src="https://github.com/user-attachments/assets/e38cd154-636f-4ab5-a0c7-a0fecc355fa4" /> |
+| <img width="1088" height="572" alt="menu" src="https://github.com/user-attachments/assets/10323e07-2197-40c1-bb99-9242aca92163" /> |
 |:---:|
 | *Mission selection menu shown to the operator at startup* |
 
@@ -75,39 +79,54 @@ The scene is a warehouse interior featuring:
 
 In teleoperation mode, the operator drives the robot manually using keyboard input or controller commands published to `/cmd_vel`.
 
-At the same time, the system continuously computes and visualizes the optimal path to the selected mission goal using Nav2’s `ComputePathToPose`. This gives the operator live navigation feedback while preserving full manual control.
+At the same time, the system continuously computes and visualizes the optimal path to the selected mission goal using Nav2's `ComputePathToPose`. This gives the operator live navigation feedback while preserving full manual control.
 
 ### Autonomous Mode
 
-A toggle in the HUD enables autonomous navigation. When this mode is activated, the robot switches from manual driving to Nav2-based autonomy and navigates independently to the selected goal using `NavigateToPose`.
+A toggle in the HUD enables autonomous navigation. When activated:
 
-The navigation is dynamically replanned in real time as the SLAM map evolves. The operator can take back control at any time by switching the toggle back to teleoperation mode.
+1. Unity publishes the mission goal as a `PoseStamped` to `/unity/nav_goal`.
+2. `path_bridge.py` forwards it to the Nav2 `NavigateToPose` action server.
+3. Nav2 takes control of the robot's motion and drives it autonomously to the goal.
+4. The path is replanned continuously as the SLAM map evolves.
+
+The operator can switch back to teleoperation at any time by toggling the HUD switch. This immediately sends a cancel signal to the bridge, which aborts the active `NavigateToPose` goal and restores manual control without restarting any node.
+
+The toggle can also be flipped **mid-mission**: if autonomous mode is enabled after a mission is already active, navigation starts from the robot's current position without requiring a mission reselection.
+
+To avoid interference between the visual path (`ComputePathToPose`) and the active navigation goal (`NavigateToPose`), the two use **separate ROS topics**: `/unity/path_goal_visual` for the visual path in autonomous mode, and `/unity/path_goal` in teleoperation mode.
 
 ### Shared Behavior in Both Modes
 
 In both modes, the operator always sees:
 
-* the live SLAM map,
-* the current goal distance,
-* the mission selection state,
-* and the computed route in the scene.
+- The live SLAM map with the robot's position and orientation overlaid
+- The current goal distance in metres
+- The mission selection state
+- The computed route rendered on the scene floor
+- The current RTT communication latency
 
 ## ROS 2 Integration
 
-Communication between Unity and ROS 2 is handled via **ROS-TCP-Connector** (`com.unity.robotics.ros-tcp-connector`), which establishes a WebSocket bridge to a running `ros_tcp_endpoint` node on the ROS 2 machine.
+Communication between Unity and ROS 2 is handled via **ROS-TCP-Connector** (`com.unity.robotics.ros-tcp-connector`), which establishes a TCP bridge to a running `ros_tcp_endpoint` node on the ROS 2 machine.
 
 ### Key topics
 
 | Topic | Direction | Type | Description |
 |---|---|---|---|
-| `/cmd_vel` | ROS&nbsp;→&nbsp;Unity | `Twist` | Teleoperation velocity commands |
-| `/odom` | Unity&nbsp;→&nbsp;ROS | `Odometry` | Robot pose published from Unity |
-| `/scan` | Unity&nbsp;→&nbsp;ROS | `LaserScan` | LiDAR scan data |
-| `/camera_front`, `/camera_rear`, `/camera_left`, `/camera_right` | Unity → ROS | `Image` | Camera feeds |
-| `/point_cloud` | Unity&nbsp;→&nbsp;ROS | `PointCloud2` | LiDAR point cloud |
-| `/map` | ROS&nbsp;→&nbsp;Unity | `OccupancyGrid` | SLAM map for minimap display |
-| `/unity/path_goal` | Unity&nbsp;→&nbsp;ROS | `PoseStamped` | Goal pose for path computation |
-| `/unity/path_result` | ROS&nbsp;→&nbsp;Unity | `Path` | Computed path from Nav2 |
+| `/cmd_vel` | ROS → Unity | `Twist` | Teleoperation or Nav2 velocity commands |
+| `/odom` | Unity → ROS | `Odometry` | Robot pose published from Unity physics |
+| `/tf` | Unity → ROS | `TFMessage` | `odom → base_link` transform |
+| `/scan` | Unity → ROS | `LaserScan` | 2D LiDAR slice for Nav2 costmaps |
+| `/point_cloud` | Unity → ROS | `PointCloud2` | Full 3D LiDAR point cloud |
+| `/map` | ROS → Unity | `OccupancyGrid` | SLAM map for minimap display |
+| `/unity/path_goal` | Unity → ROS | `PoseStamped` | Goal for visual path (teleop mode) |
+| `/unity/path_goal_visual` | Unity → ROS | `PoseStamped` | Goal for visual path (autonomous mode) |
+| `/unity/path_result` | ROS → Unity | `Path` | Computed path from Nav2 |
+| `/unity/nav_goal` | Unity → ROS | `PoseStamped` | Autonomous navigation goal |
+| `/unity/cancel_nav` | Unity → ROS | `Bool` | Cancels the active Nav2 goal |
+| `/unity/ping` | Unity → ROS | `Header` | Latency measurement ping |
+| `/unity/pong` | ROS → Unity | `Header` | Latency measurement pong (echo) |
 
 ## Sensor Stack
 
@@ -115,12 +134,12 @@ Communication between Unity and ROS 2 is handled via **ROS-TCP-Connector** (`com
 
 Four cameras surround the robot for complete situational awareness. In the HUD:
 
-- **Front/rear cameras** alternate using alpha blending based on the current movement command — the front camera is shown when moving forward, the rear when reversing.
+- **Front/rear cameras** alternate using alpha blending based on the current movement direction — the front camera is shown when moving forward, the rear when reversing.
 - **Left and right cameras** are shown in fixed side panels.
 
 ### LiDAR
 
-A 360° LiDAR scans the environment and publishes on `/point_cloud`. The data feeds:
+A 360° LiDAR scans the environment via raycasting and publishes on both `/scan` and `/point_cloud`. The data feeds:
 
 1. **SLAM Toolbox** — for real-time map construction
 2. **Nav2 costmaps** — for obstacle-aware path planning
@@ -132,52 +151,51 @@ A 360° LiDAR scans the environment and publishes on `/point_cloud`. The data fe
 
 The `online_async` mode of slam_toolbox is used to build the occupancy map incrementally as the robot explores. The operator starts with zero knowledge of the building interior; the map is constructed entirely from LiDAR data during the mission.
 
-### Path Planning — Nav2 `ComputePathToPose` and `NavigateToPose`
+### Path Planning — Nav2
 
-When the operator selects a mission, Unity publishes the goal pose (last waypoint of the selected mission) to `/unity/path_goal`. The `path_bridge.py` node intercepts this request and interacts with Nav2 depending on the selected operation mode.
-
-In **teleoperation mode**, the bridge calls the Nav2 `ComputePathToPose` action server and publishes the resulting path to `/unity/path_result`.
-
-In **autonomous mode**, the same goal is forwarded to the Nav2 `NavigateToPose` action server, allowing the robot to move independently toward the selected mission target while continuously replanning based on the evolving SLAM map.
-
-Unity subscribes to `/unity/path_result` and renders the path as a **green LineRenderer** on the floor of the scene, updated every ~1.5 seconds as the robot moves.
+When the operator selects a mission, Unity publishes the goal pose to the appropriate topic based on the active mode. The `path_bridge.py` node intercepts the request and interacts with Nav2 accordingly.
 
 ```text
 Operator selects mission
         │
         ▼
-Unity publishes PoseStamped → /unity/path_goal
+Unity publishes PoseStamped
         │
-        ▼
-path_bridge.py checks operation mode
+        ├── Teleop mode ──► /unity/path_goal
+        │                        │
+        │                        ▼
+        │               ComputePathToPose (visual only)
+        │                        │
+        │                        ▼
+        │               path_bridge.py → /unity/path_result
+        │                        │
+        │                        ▼
+        │               LineRenderer draws path on scene floor
         │
-        ├── Teleop mode ──► ComputePathToPose
-        │                  │
-        │                  ▼
-        │          Nav2 computes path using LiDAR costmap + SLAM map
-        │                  │
-        │                  ▼
-        │          path_bridge.py publishes nav_msgs/Path → /unity/path_result
-        │                  │
-        │                  ▼
-        │          Unity LineRenderer draws path on scene floor
-        │
-        └── Autonomous mode ─► NavigateToPose
-                           │
-                           ▼
-                   Nav2 autonomously drives the robot to the goal
-                           │
-                           ▼
-                   Robot replans in real time as the map updates
+        └── Autonomous mode ──► /unity/nav_goal
+                                     │
+                                     ▼
+                            NavigateToPose (robot moves)
+                                     │
+                                     ├── /unity/path_goal_visual
+                                     │   → ComputePathToPose (visual only,
+                                     │     separate from nav goal)
+                                     │
+                                     ▼
+                            Nav2 drives robot, replans on map updates
+                                     │
+                                     ▼
+                            on success → Unity shows "Robot has reached the goal!"
+                            on cancel  → robot stops, teleop restored
 ```
 
-> **Note:** In teleoperation mode, the operator drives the robot manually and Nav2 is used for path visualization only. In autonomous mode, Nav2 takes control of motion through `NavigateToPose`, and manual control can be restored at any time through the HUD toggle.
+> **Note:** In autonomous mode, the visual path and the navigation goal use separate topics so that `ComputePathToPose` requests do not interfere with the active `NavigateToPose` action.
 
 ### Static Arrow Guides
 
 In addition to the live Nav2 path, a set of **static green arrows** is pre-placed along authored waypoints for each mission. These provide a stable reference guide independent of the map state, and are always visible once a mission is selected.
 
-| <img width="1088" height="572" alt="Screenshot from 2026-04-10 10-57-18" src="https://github.com/user-attachments/assets/e4620862-9316-45e4-b55d-c23c24c3c7b9" /> |
+| <img width="1088" height="572" alt="goal" src="https://github.com/user-attachments/assets/3a830ff9-2507-4314-adb3-99a9d79b8308" /> |
 |:---:|
 | *"Robot has reached the goal!" message displayed when the robot arrives at the mission destination* |
 
@@ -186,34 +204,41 @@ In addition to the live Nav2 path, a set of **static green arrows** is pre-place
 The operator's HUD (displayed in the XR headset) includes:
 
 ### Radar (top-left)
-A circular radar display showing obstacles detected by LiDAR in real time. Points are color-coded by proximity: **green → yellow → orange → red** as distance decreases. Point size also scales with proximity for immediate visual feedback.
+A circular radar display showing obstacles detected by LiDAR in real time. Points are color-coded by proximity: **red → yellow** as distance increases. Point size also scales with proximity for immediate visual feedback.
 
 ### Camera panels (top-center)
 Three camera feeds displayed simultaneously:
-- **Center**: front/rear blend (switches automatically with movement direction)
+- **Center**: front/rear blend (switches automatically based on movement direction)
 - **Left and right**: side cameras
 
 ### Minimap (top-right)
-The occupancy map built by SLAM Toolbox, updated in real time via the `/map` topic.
+The occupancy map built by SLAM Toolbox, updated in real time via the `/map` topic. The **robot's current position and heading** are overlaid on the map as a red dot with an orange directional arrow, projected from the Unity world transform into map UV space at every frame.
 
 ### Mission panel (bottom-right)
-- Current mission name and goal distance in meters
+- Current mission name and goal distance in metres
+- Autonomous navigation toggle (ON/OFF)
 - Button to open the mission selection menu
 
 ### Path visualization (in-scene)
 - **Static green arrows** along pre-authored waypoints
-- **Dynamic green line** (LineRenderer) showing the Nav2-computed path, refreshed every 1.5 s
+- **Dynamic green line** (LineRenderer) showing the Nav2-computed path, refreshed every ~1.5 s as the robot moves
 
 ## Communication Latency
 
-A latency measurement script was implemented to measure the round-trip delay between Unity issuing a command and the robot responding. This allows the operator to monitor control lag and account for it during teleoperation in high-stakes scenarios.
+A dedicated latency monitor measures the **Round-Trip Time (RTT)** between Unity and ROS 2 using a ping/pong mechanism:
+
+1. Unity publishes a `HeaderMsg` on `/unity/ping` every 500 ms.
+2. `path_bridge.py` echoes it immediately on `/unity/pong`.
+3. Unity measures the elapsed time with `System.Diagnostics.Stopwatch` (hardware performance counter, sub-microsecond resolution).
+
+The RTT and estimated one-way latency (`RTT / 2`) are displayed live in the HUD. The measurement is independent of clock synchronisation between the two machines, making it reliable on any network setup. An Exponential Moving Average smooths out occasional spikes.
 
 ## Setup & Launch
 
 ### Prerequisites
 
 - ROS 2 Humble with `slam_toolbox`, `nav2_bringup`, `ros_tcp_endpoint`, `teleop_twist_keyboard` installed
-- Unity 2022.x with `com.unity.robotics.ros-tcp-connector` package
+- Unity 6 with `com.unity.robotics.ros-tcp-connector` package
 - All ROS 2 packages placed inside a colcon workspace
 
 ### 1. Build the ROS 2 workspace
@@ -250,9 +275,9 @@ This will open the following terminals in sequence:
 
 Once all terminals are running and Nav2 is ready, press **Play** in the Unity Editor. The ROS-TCP connection will be established automatically.
 
-### 5. Teleoperate the robot
+### 5. Operate the robot
 
-Switch to the **TELEOPERATION** terminal and use the keyboard to drive the robot:
+**Teleoperation:** switch to the **TELEOPERATION** terminal and use the keyboard:
 
 ```
 u i o
@@ -260,11 +285,10 @@ j k l
 m , .
 ```
 
-Select a mission from the Unity HUD — the Nav2 path will appear in the scene in real time.
+**Autonomous navigation:** select a mission from the Unity HUD and enable the **Auto Navigation** toggle. The robot will navigate to the goal independently. Toggle it off at any time to resume manual control.
 
 ## Future Work
 
 - **Multi-robot support**: extend the system to coordinate multiple robots exploring different sections of the building simultaneously.
 - **Victim detection**: integrate an object detection model on the camera feeds to highlight potential survivors on the map.
-
-
+- **VR headset integration**: deploy the HUD on a physical XR headset for immersive first-person teleoperation.
