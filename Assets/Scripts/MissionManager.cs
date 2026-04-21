@@ -203,7 +203,7 @@ public class MissionMenuManager : MonoBehaviour
         string label = currentMission switch
         {
             MissionType.MissionA => "Mission A - Exit",
-            MissionType.MissionB => "Mission B - Shelves",
+            MissionType.MissionB => "Mission B - Crates",
             MissionType.MissionC => "Mission C - Barrels",
             _                    => "No current mission"
         };
